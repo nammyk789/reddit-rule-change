@@ -1,0 +1,6 @@
+original data/*
+output_data/*
+myenv/*
+figures/*
+*.csv
+*.json

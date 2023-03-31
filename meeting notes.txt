@@ -1,0 +1,7 @@
+3/9/2023
+- send list of subs that are being dropped
+- add time windows to Seth's code
+- get rules/month
+- filter out "dead" subs: less than 3 subscribers in both scrapes, subs that have 0 rules in both subs (DO THIS IN BOTH SCRAPES)
+- filter out subreddits that are younger than 1 month (DO THIS IN BOTH SCRAPES)
+- get histogram of scrape window for each sub in both mako's data and seth's data

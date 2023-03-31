@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>writeup</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+  </style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h1 id="analysis-of-rule-changes-in-subreddits">Analysis of Rule Changes in Subreddits</h1>
+<p>Namrata Kasaraneni</p>
+<h2 id="explanation-of-data">Explanation of data</h2>
+<p>All of the figures generated in this plot uses data taken from two snapshots of Reddit: the first was scraped in April 2020, and the second was scraped December of 2020. Subreddits that had fewer than three subscribers in both scrapes, zero rules in both scrapes, or that were founded within a month of the first scrape were filtered out. With the remaining 358026 subs, we tracked how rules changed between the two snapshots. We identified rules that were the same if they had the same creation timestamp and description, or the same rule name.There were five types of text labels:</p>
+<ol type="1">
+<li><strong>unchanged</strong>: Rules that had fewer than 10 characters change between snapshots, or rules that were present at the subreddit’s creation and were present in the second snapshot.</li>
+<li><strong>added</strong>: Rules that was added after the subreddit’s creation or after the first snapshot.</li>
+<li><strong>deleted</strong>: Rules that were present in the first snapshot and not the second.</li>
+<li><strong>changed</strong>: Rules that were present at the creation of the subreddit, and then changed between the first and second snapshot.</li>
+<li><strong>change-added</strong>: Rules that were added after the creation of the subreddit, and were then changed<br />
+between the first and second snapshot.</li>
+</ol>
+<p>Additionally, each rule had a short name (the name displayed on the subreddit’s main page) and a violation reason (which moderators use to flag posts that violate the rules). Similar text analysis was done on the short names and the violation reasons of each rule.</p>
+<h2 id="growth-in-rules-corpus">Growth in Rules Corpus</h2>
+<figure>
+<img src="figures/writeup_figure2_1.png" width="400" alt="" /><figcaption>Figure 1</figcaption>
+</figure>
+<p><strong>Figure 1</strong> is a histogram that summarizes the change types of all the rules we processed between the two snapshots. The vast majority of rules were unchanged between the snapshots. Out of the ones that were altered, addition was by far the most frequent type of rule alteration, followed by addition. Actual change of the rule description is the rarest type of rule alteration. <strong>Figure 1</strong> indicates that the overall corpus of subreddit rules is increasing over time.</p>
+<h2 id="difference-in-changes-between-text-fields">Difference in Changes Between Text Fields</h2>
+<p>In the table below, we can compare the percentage of different change types between rule names, rule descriptions, and rule violation reasons. Each row contains the average percentage of the change type that was applied to the text field in each sub. For example, the first entry in the table, corresponding to the column <strong>Rule Name</strong> and the row <strong>unchanged</strong>, says that on average, each sub left 94.08% of its rule names unchanged.</p>
+<h3 id="average-rule-changes-for-each-text-field">Average Rule Changes for Each Text Field</h3>
+<table>
+<thead>
+<tr class="header">
+<th>Change Type     </th>
+<th style="text-align: center;">Rule Name     </th>
+<th style="text-align: center;">Rule Description     </th>
+<th style="text-align: center;">Violation Reason   </th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>unchanged</strong></td>
+<td style="text-align: center;">94.08%</td>
+<td style="text-align: center;">93.75%</td>
+<td style="text-align: center;">90.41%</td>
+</tr>
+<tr class="even">
+<td><strong>added</strong></td>
+<td style="text-align: center;">5.26%</td>
+<td style="text-align: center;">5.18%</td>
+<td style="text-align: center;">8.66%</td>
+</tr>
+<tr class="odd">
+<td><strong>deleted</strong></td>
+<td style="text-align: center;">0.6%</td>
+<td style="text-align: center;">0.6%</td>
+<td style="text-align: center;">0.8%</td>
+</tr>
+<tr class="even">
+<td><strong>changed</strong></td>
+<td style="text-align: center;">0.04%</td>
+<td style="text-align: center;">0.37%</td>
+<td style="text-align: center;">0.11%</td>
+</tr>
+<tr class="odd">
+<td><strong>change-added</strong></td>
+<td style="text-align: center;">0.01%</td>
+<td style="text-align: center;">0.09%</td>
+<td style="text-align: center;">0.02%</td>
+</tr>
+</tbody>
+</table>
+<p>We can see that the rule descriptions change significantly more often than violation reasons or rule names. Violation reasons are added more often than rule names or rule descriptions and are the least likely to be left unchanged, suggesting that there is more churn with violation reasons.</p>
+<h2 id="punctuated-equilibrium">Punctuated Equilibrium</h2>
+<figure>
+<img src="figures/writeup_figure4_1.png" width="400" alt="" /><figcaption>Figure 2</figcaption>
+</figure>
+<p><strong>Figure 2</strong> shows a histogram of the percent of rules altered (by either adding, deleting, or changing their rules) for each sub, with subs that left all their rules unchanged filtered out. We can see evidence for punctuated equilibrium in the significant number of subs that had over 60% of their rules altered. In total, 697 subs changed at least 60% of their rules between the two snapshots. 230 of those subs altered 90-100% of their rules.</p>
+<figure>
+<img src="figures/writeup_figure5_1.png" width="400" alt="" /><figcaption>Figure 3</figcaption>
+</figure>
+<p><strong>Figure 3</strong> is a similar histogram, but only showing rules that had their descriptions changed, discounting rules that were added or deleted.</p>
+</body>
+</html>

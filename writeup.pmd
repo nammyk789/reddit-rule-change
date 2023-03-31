@@ -1,0 +1,161 @@
+# Analysis of Rule Changes in Subreddits
+
+Namrata Kasaraneni
+
+```python, echo=False
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from pprint import pprint
+
+rules_df = pd.read_csv("output_data/seth_step3_rules.csv")
+violations_df = pd.read_csv("output_data/seth_step3_violations.csv")
+names_df = pd.read_csv("output_data/seth_step3_names.csv")
+
+def generate_metadata(df):
+    # returns a data frame with rows corresponding to subreddits and columns
+    # corresponding to change type
+    relevant_columns = df[["communityID", "change_type"]]
+    piv_df = pd.pivot_table(relevant_columns, index=['communityID'], 
+                columns=['change_type'], aggfunc=len, fill_value=0)
+    piv_df['changed'] = piv_df.changed / 2 # double counting because when rules are changed we keep both versions
+    piv_df['change_added'] = piv_df.change_added / 2
+    return piv_df
+
+def generate_change_percents(metadata):
+    # return avg percent of rules for each change type
+    # based on the output of generate_metadata()
+    metadata = metadata.div(metadata.sum(axis=1), axis=0)
+    metadata = metadata.multiply(100)
+    metadata = metadata.mean()
+    metadata = metadata.round(2)
+    # metadata = metadata.astype(int)
+    return metadata
+
+```
+## Explanation of data
+All of the figures generated in this plot uses data taken from two snapshots of Reddit: 
+the first was scraped in April 2020, and the second was scraped December of 2020. Subreddits 
+that had fewer than three subscribers in both scrapes, zero rules in both scrapes, or that were 
+founded within a month of the first scrape were filtered out. With the remaining <% len(rules_df) %>
+subs, we tracked how rules changed between the two snapshots. We identified rules that
+were the same if they had the same creation timestamp and description, or the same rule 
+name.There were five types of text labels:
+
+1. **unchanged**: Rules that had fewer than 10 characters change between snapshots, or rules
+    that were present at the subreddit's creation and were present in the second snapshot.
+2. **added**: Rules that was added after the subreddit's creation or after the first snapshot.
+3. **deleted**: Rules that were present in the first snapshot and not the second.
+4. **changed**: Rules that were present at the creation of the subreddit, and then changed
+    between the first and second snapshot.
+5. **change-added**: Rules that were added after the creation of the subreddit, and were then changed   
+    between the first and second snapshot.
+
+Additionally, each rule had a short name (the name displayed on the subreddit's main page) and 
+a violation reason (which moderators use to flag posts that violate the rules). Similar text 
+analysis was done on the short names and the violation reasons of each rule.
+
+## Growth in Rules Corpus
+
+```python, echo = False, fig = True, width = 400, caption = "Figure 1"
+# Get data
+data = np.array(rules_df["change_type"])
+labels, counts = np.unique(data, return_counts=True)
+counts[1] = counts[1]/2 # changed and change_added are double counted, so divide
+counts[2] = counts[2]/2 # changed and change_added are double counted, so divide
+
+# Create histogram
+plt.bar(labels, counts, log=True, align='center')
+plt.gca().set_xticks(labels)
+
+# Set axis labels and title
+plt.xlabel("Change Type")
+plt.ylabel("Frequency")
+plt.title("How Rules Changed Between Snaps")
+
+# Display plot
+plt.show()
+```
+**Figure 1** is a histogram that summarizes the change types of all the rules we processed between
+the two snapshots. The vast majority of rules were unchanged between the snapshots. Out of the ones 
+that were altered, addition was by far the most frequent type of rule alteration, followed by addition.
+Actual change of the rule description is the rarest type of rule alteration. **Figure 1** indicates that
+the overall corpus of subreddit rules is increasing over time. 
+
+## Difference in Changes Between Text Fields
+
+```python, echo = False
+rules_metadata = generate_metadata(rules_df)
+violations_metadata = generate_metadata(violations_df)
+names_metadata = generate_metadata(names_df)
+
+rule_percents = generate_change_percents(rules_metadata)
+violation_percents = generate_change_percents(violations_metadata)
+name_percents = generate_change_percents(names_metadata)
+```
+
+In the table below, we can compare the percentage of different change types between rule names,
+rule descriptions, and rule violation reasons. Each row contains the average percentage of the 
+change type that was applied to the text field in each sub. For example, the first entry in the
+table, corresponding to the column **Rule Name** and the row **unchanged**, says that on average,
+each sub left <% name_percents.unchanged %>% of its rule names unchanged. 
+
+### Average Rule Changes for Each Text Field 
+
+| Change Type &nbsp;&nbsp;&nbsp;&nbsp;| Rule Name &nbsp;&nbsp;&nbsp;&nbsp;| Rule Description &nbsp;&nbsp;&nbsp;&nbsp;| Violation Reason &nbsp;&nbsp;|
+| -- | :--: | :--: | :--: |
+| **unchanged** | <% name_percents.unchanged %>% | <% rule_percents.unchanged %>% | <% violation_percents.unchanged %>% |
+| **added** | <% name_percents.added %>% | <% rule_percents.added %>% | <% violation_percents.added %>% |
+| **deleted** | <% name_percents.deleted %>% | <% rule_percents.deleted %>% | <% violation_percents.deleted %>% |
+| **changed** | <% name_percents.changed %>% | <% rule_percents.changed %>% | <% violation_percents.changed %>% |
+| **change-added** | <% name_percents.change_added %>% | <% rule_percents.change_added %>% | <% violation_percents.change_added %>% |
+
+We can see that the rule descriptions change significantly more often than violation reasons 
+or rule names. Violation reasons are added more often than rule names or rule descriptions and
+are the least likely to be left unchanged, suggesting that there is more churn with violation 
+reasons. 
+
+
+## Punctuated Equilibrium
+
+```python, echo=False, caption = "Figure 2", fig = True, width = 400
+# Filter data
+filtered_data = rules_metadata[rules_metadata.changed != 0]
+filtered_data = filtered_data.div(filtered_data.sum(axis=1), axis=0)
+filtered_data = filtered_data.multiply(100)
+filtered_data['not_unchanged'] = 100 - filtered_data['unchanged']
+
+# Create histogram
+plt.hist(filtered_data['not_unchanged'], bins=10)
+
+# Set axis labels and title
+plt.xlabel("Percent of Rules Altered (>0)")
+plt.ylabel("Number of Subs")
+plt.title("Distribution of Rule Alterations per Sub")
+plt.show()
+```
+
+**Figure 2** shows a histogram of the percent of rules altered (by either adding, deleting, 
+or changing their rules) for each sub, with subs that left all their rules unchanged filtered out. 
+We can see evidence for punctuated equilibrium in the significant number of subs that had over 60% 
+of their rules altered. In total, <% len(filtered_data[filtered_data.not_unchanged >= 60]) %> 
+subs changed at least 60% of their rules between the two snapshots. 
+<% len(filtered_data[filtered_data.not_unchanged >= 90]) %> of those subs altered 90-100% of their rules.
+
+```python, echo=False, caption = "Figure 3", fig = True, width = 400
+# Filter data
+filtered_data = rules_metadata[rules_metadata.changed != 0]
+filtered_data = filtered_data.div(filtered_data.sum(axis=1), axis=0)
+filtered_data = filtered_data.multiply(100)
+
+# Create histogram
+plt.hist(filtered_data['changed'] + filtered_data['change_added'], bins=10)
+
+# Set axis labels and title
+plt.xlabel("Percent of Rules Changed (>0)")
+plt.ylabel("Number of Subs")
+plt.title("Distribution of Rule Changes per Sub")
+plt.show()
+```
+**Figure 3** is a similar histogram, but only showing rules that had their descriptions changed, discounting 
+rules that were added or deleted. 
