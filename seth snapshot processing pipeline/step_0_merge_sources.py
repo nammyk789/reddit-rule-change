@@ -61,24 +61,24 @@ with open(file1_path) as apr_23:
 
         if sub_counter[subname] > 0: # skip duplicates
             continue
-        if 'rules_widget' in sub.keys(): 
-            if len(sub['rules_widget']) <= 0: # drop if the sub has no rules
-                continue
-            
-            elif sub['created_utc'] <= one_month_before_first_scrape: # or sub is too young
-                continue
-            else:
-                subs_1.append(subname)
-                sub_counter[subname] += 1
-        else:
-            continue
+
         # get metadata
         sub_metadata[subname] = {}
         try:
             sub_metadata[subname]['subscribers_1'] = int(sub['subscribers'])
+            sub_metadata[subname]['rules_1'] = len(sub['rules_widget'])
             sub_metadata[subname]['founding_date'] = sub['created_utc']
-        except:
+        except: # if any of those fields are missing, drop the sub
             drop_subs.append(subname)
+            continue
+
+        if sub['created_utc'] <= one_month_before_first_scrape: # drop if sub is too young
+            drop_subs.append(subname)
+            continue
+        else:
+            subs_1.append(subname)
+            sub_counter[subname] += 1
+
         ## build structure up
         if not subname in sub_rule_versions:
             ### bookkeeping
@@ -156,20 +156,23 @@ with open(file2_path) as dec_10:
         subname = sub['sub_name'].lower()
         if sub_counter[subname] != 1 or subname in drop_subs:
             continue # we only want subs that are in both snapshots, and we want to skip duplicates
-        if 'rules_widget' in sub.keys(): 
-            if len(sub['rules_widget']) > 0: # if the sub has rules
-                subs_2.append(subname)
-                sub_counter[subname] += 1
-            else:
-                continue
-        else: # skip sub otherwise NOTE: change this to account for subs that delete all rules?
-            continue
         
         # get metadata
-        sub_metadata[subname]['subscribers_2'] = int(sub['subscribers'])
+        try:
+            sub_metadata[subname]['subscribers_2'] = int(sub['subscribers'])
+            sub_metadata[subname]['rules_2'] = len(sub['rules_widget'])
+            subs_2.append(subname)
+            sub_counter[subname] += 1
+        except:
+            drop_subs.append(subname)
+            continue
 
         # drop subs that have too few subscribers
         if sub_metadata[subname]['subscribers_1'] < 3 and sub_metadata[subname]['subscribers_2'] < 3:
+            drop_subs.append(subname)
+            continue
+        # drop subs that have no rules in both scrapes
+        elif sub_metadata[subname]['rules_1'] < 1 and sub_metadata[subname]['rules_2'] < 1:
             drop_subs.append(subname)
             continue
 
@@ -262,7 +265,7 @@ with open('seth snapshot processing pipeline/step0_rules_merged_test.json', 'w')
     json.dump(sub_rule_versions, outfile)
 print( 'SCRIPT end' )
 
-header = ('communityID', 'subscribers_1', 'subscribers_2', 'founding_date')
+header = ('communityID', 'subscribers_1', 'subscribers_2', 'rules_1', 'rules_2', 'founding_date')
 with open('seth snapshot processing pipeline/metadata.csv', 'w', encoding='utf-8') as outfile:
     writer = csv.DictWriter(outfile, fieldnames=header)
     writer.writeheader()
@@ -273,6 +276,8 @@ with open('seth snapshot processing pipeline/metadata.csv', 'w', encoding='utf-8
                             'communityID' : sub
                             , 'subscribers_1' : sub_data['subscribers_1']
                             , 'subscribers_2' : sub_data['subscribers_2']
+                            , 'rules_1' : sub_data['rules_1']
+                            , 'rules_2' : sub_data['rules_2']
                             , 'founding_date' : sub_data['founding_date']
                         }
             writer.writerow(data_out)
