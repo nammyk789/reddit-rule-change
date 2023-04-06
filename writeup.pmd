@@ -1,3 +1,9 @@
+<!--
+To run in terminal:
+pweave -f pandoc writeup.pmd
+pandoc -s --mathjax writeup.md -o writeup.html 
+-->
+
 # Analysis of Rule Changes in Subreddits
 
 Namrata Kasaraneni
@@ -33,11 +39,11 @@ def generate_change_percents(metadata):
     return metadata
 
 ```
-## Explanation of data
+## Data
 All of the figures generated in this plot uses data taken from two snapshots of Reddit: 
 the first was scraped in April 2020, and the second was scraped December of 2020. Subreddits 
 that had fewer than three subscribers in both scrapes, zero rules in both scrapes, or that were 
-founded within a month of the first scrape were filtered out. With the remaining <% len(rules_df) %>
+founded within a month of the first scrape were filtered out. With the remaining
 subs, we tracked how rules changed between the two snapshots. We identified rules that
 were the same if they had the same creation timestamp and description, or the same rule 
 name.There were five types of text labels:
@@ -54,6 +60,21 @@ name.There were five types of text labels:
 Additionally, each rule had a short name (the name displayed on the subreddit's main page) and 
 a violation reason (which moderators use to flag posts that violate the rules). Similar text 
 analysis was done on the short names and the violation reasons of each rule.
+
+### Description of the dataset
+
+```python, echo = False
+rules_metadata = generate_metadata(rules_df)
+violations_metadata = generate_metadata(violations_df)
+names_metadata = generate_metadata(names_df)
+
+rules_per_sub = rules_metadata.sum(axis=1)
+quartiles = rules_per_sub.quantile([0.25, 0.5, 0.75])
+```
+
+The datasets contain <% len(rules_df) %> subs. The subs have between <% int(rules_per_sub.min()) %>
+to <% int(rules_per_sub.max()) %> rules, with the first and third quartiles being <% int(quartiles[0.25]) %>
+and <% int(quartiles[0.75]) %> rules. 
 
 ## Growth in Rules Corpus
 
@@ -85,10 +106,6 @@ the overall corpus of subreddit rules is increasing over time.
 ## Difference in Changes Between Text Fields
 
 ```python, echo = False
-rules_metadata = generate_metadata(rules_df)
-violations_metadata = generate_metadata(violations_df)
-names_metadata = generate_metadata(names_df)
-
 rule_percents = generate_change_percents(rules_metadata)
 violation_percents = generate_change_percents(violations_metadata)
 name_percents = generate_change_percents(names_metadata)
@@ -136,7 +153,7 @@ plt.show()
 ```
 
 **Figure 2** shows a histogram of the percent of rules altered (by either adding, deleting, 
-or changing their rules) for each sub, with subs that left all their rules unchanged filtered out. 
+or changing their rules) for each sub, with subs that left all of their rules unchanged filtered out. 
 We can see evidence for punctuated equilibrium in the significant number of subs that had over 60% 
 of their rules altered. In total, <% len(filtered_data[filtered_data.not_unchanged >= 60]) %> 
 subs changed at least 60% of their rules between the two snapshots. 
@@ -158,4 +175,5 @@ plt.title("Distribution of Rule Changes per Sub")
 plt.show()
 ```
 **Figure 3** is a similar histogram, but only showing rules that had their descriptions changed, discounting 
-rules that were added or deleted. 
+rules that were added or deleted. The evidence has the caveat that subs with high percentages of rule changes 
+or alterations might in reality have a low count of rules, amplifying the perceived turnover. 

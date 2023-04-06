@@ -1,14 +1,20 @@
+<!--
+To run in terminal:
+pweave -f pandoc writeup.pmd
+pandoc -s --mathjax writeup.md -o writeup.html 
+-->
+
 # Analysis of Rule Changes in Subreddits
 
 Namrata Kasaraneni
 
 
 
-## Explanation of data
+## Data
 All of the figures generated in this plot uses data taken from two snapshots of Reddit: 
 the first was scraped in April 2020, and the second was scraped December of 2020. Subreddits 
 that had fewer than three subscribers in both scrapes, zero rules in both scrapes, or that were 
-founded within a month of the first scrape were filtered out. With the remaining 358026
+founded within a month of the first scrape were filtered out. With the remaining
 subs, we tracked how rules changed between the two snapshots. We identified rules that
 were the same if they had the same creation timestamp and description, or the same rule 
 name.There were five types of text labels:
@@ -26,10 +32,19 @@ Additionally, each rule had a short name (the name displayed on the subreddit's 
 a violation reason (which moderators use to flag posts that violate the rules). Similar text 
 analysis was done on the short names and the violation reasons of each rule.
 
+### Description of the dataset
+
+
+
+
+The datasets contain 358026 subs. The subs have between 1
+to 25 rules, with the first and third quartiles being 2
+and 5 rules. 
+
 ## Growth in Rules Corpus
 
 
-![Figure 1](figures/writeup_figure2_1.png){width=400}
+![Figure 1](figures/writeup_figure3_1.png){width=400}
 
 **Figure 1** is a histogram that summarizes the change types of all the rules we processed between
 the two snapshots. The vast majority of rules were unchanged between the snapshots. Out of the ones 
@@ -67,18 +82,19 @@ reasons.
 ## Punctuated Equilibrium
 
 
-![Figure 2](figures/writeup_figure4_1.png){width=400}
+![Figure 2](figures/writeup_figure5_1.png){width=400}
 
 
 **Figure 2** shows a histogram of the percent of rules altered (by either adding, deleting, 
-or changing their rules) for each sub, with subs that left all their rules unchanged filtered out. 
+or changing their rules) for each sub, with subs that left all of their rules unchanged filtered out. 
 We can see evidence for punctuated equilibrium in the significant number of subs that had over 60% 
 of their rules altered. In total, 697 
 subs changed at least 60% of their rules between the two snapshots. 
 230 of those subs altered 90-100% of their rules.
 
 
-![Figure 3](figures/writeup_figure5_1.png){width=400}
+![Figure 3](figures/writeup_figure6_1.png){width=400}
 
 **Figure 3** is a similar histogram, but only showing rules that had their descriptions changed, discounting 
-rules that were added or deleted. 
+rules that were added or deleted. The evidence has the caveat that subs with high percentages of rule changes 
+or alterations might in reality have a low count of rules, amplifying the perceived turnover. 

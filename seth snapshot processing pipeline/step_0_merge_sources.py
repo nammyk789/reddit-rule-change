@@ -2,6 +2,7 @@ import json
 from pprint import pprint
 from collections import OrderedDict, Counter
 import csv
+import datetime
 
 file1_path = "original data/full_reddit_metadata_apr_23.jsonl"
 file2_path = "original data/full_subreddit_metadata_dec_10.jsonl"
@@ -36,11 +37,17 @@ sub_timestamps = {}
 sub_metadata = {}
 sub_counter = Counter()
 drop_subs = []
+low_num_subscribers = []
 
 existing_rule_count = 0
 refurb_rule_count = 0
 new_rule_count = 0
 errors = 0
+date_of_first_scrape = datetime.datetime(2021, 4, 23)
+one_month_before_first_scrape = date_of_first_scrape - datetime.timedelta(days=30)
+one_month_before_first_scrape = int(one_month_before_first_scrape.timestamp())
+
+
 
 print("processing April 23rd scrape")
 with open(file1_path) as apr_23:
@@ -55,15 +62,16 @@ with open(file1_path) as apr_23:
         if sub_counter[subname] > 0: # skip duplicates
             continue
         if 'rules_widget' in sub.keys(): 
-            if len(sub['rules_widget']) > 0: # if the sub has rules
+            if len(sub['rules_widget']) <= 0: # drop if the sub has no rules
+                continue
+            
+            elif sub['created_utc'] <= one_month_before_first_scrape: # or sub is too young
+                continue
+            else:
                 subs_1.append(subname)
                 sub_counter[subname] += 1
-                # print(subname)
-            else:
-                continue
         else:
             continue
-
         # get metadata
         sub_metadata[subname] = {}
         try:
@@ -156,9 +164,14 @@ with open(file2_path) as dec_10:
                 continue
         else: # skip sub otherwise NOTE: change this to account for subs that delete all rules?
             continue
-
+        
         # get metadata
         sub_metadata[subname]['subscribers_2'] = int(sub['subscribers'])
+
+        # drop subs that have too few subscribers
+        if sub_metadata[subname]['subscribers_1'] < 3 and sub_metadata[subname]['subscribers_2'] < 3:
+            drop_subs.append(subname)
+            continue
 
         if subname not in sub_rule_versions:
             ### bookkeeping

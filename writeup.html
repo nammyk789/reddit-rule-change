@@ -18,10 +18,15 @@
   <![endif]-->
 </head>
 <body>
+<!--
+To run in terminal:
+pweave -f pandoc writeup.pmd
+pandoc -s --mathjax writeup.md -o writeup.html 
+-->
 <h1 id="analysis-of-rule-changes-in-subreddits">Analysis of Rule Changes in Subreddits</h1>
 <p>Namrata Kasaraneni</p>
-<h2 id="explanation-of-data">Explanation of data</h2>
-<p>All of the figures generated in this plot uses data taken from two snapshots of Reddit: the first was scraped in April 2020, and the second was scraped December of 2020. Subreddits that had fewer than three subscribers in both scrapes, zero rules in both scrapes, or that were founded within a month of the first scrape were filtered out. With the remaining 358026 subs, we tracked how rules changed between the two snapshots. We identified rules that were the same if they had the same creation timestamp and description, or the same rule name.There were five types of text labels:</p>
+<h2 id="data">Data</h2>
+<p>All of the figures generated in this plot uses data taken from two snapshots of Reddit: the first was scraped in April 2020, and the second was scraped December of 2020. Subreddits that had fewer than three subscribers in both scrapes, zero rules in both scrapes, or that were founded within a month of the first scrape were filtered out. With the remaining subs, we tracked how rules changed between the two snapshots. We identified rules that were the same if they had the same creation timestamp and description, or the same rule name.There were five types of text labels:</p>
 <ol type="1">
 <li><strong>unchanged</strong>: Rules that had fewer than 10 characters change between snapshots, or rules that were present at the subreddit’s creation and were present in the second snapshot.</li>
 <li><strong>added</strong>: Rules that was added after the subreddit’s creation or after the first snapshot.</li>
@@ -31,9 +36,11 @@
 between the first and second snapshot.</li>
 </ol>
 <p>Additionally, each rule had a short name (the name displayed on the subreddit’s main page) and a violation reason (which moderators use to flag posts that violate the rules). Similar text analysis was done on the short names and the violation reasons of each rule.</p>
+<h3 id="description-of-the-dataset">Description of the dataset</h3>
+<p>The datasets contain 358026 subs. The subs have between 1 to 25 rules, with the first and third quartiles being 2 and 5 rules.</p>
 <h2 id="growth-in-rules-corpus">Growth in Rules Corpus</h2>
 <figure>
-<img src="figures/writeup_figure2_1.png" width="400" alt="" /><figcaption>Figure 1</figcaption>
+<img src="figures/writeup_figure3_1.png" width="400" alt="" /><figcaption>Figure 1</figcaption>
 </figure>
 <p><strong>Figure 1</strong> is a histogram that summarizes the change types of all the rules we processed between the two snapshots. The vast majority of rules were unchanged between the snapshots. Out of the ones that were altered, addition was by far the most frequent type of rule alteration, followed by addition. Actual change of the rule description is the rarest type of rule alteration. <strong>Figure 1</strong> indicates that the overall corpus of subreddit rules is increasing over time.</p>
 <h2 id="difference-in-changes-between-text-fields">Difference in Changes Between Text Fields</h2>
@@ -84,12 +91,12 @@ between the first and second snapshot.</li>
 <p>We can see that the rule descriptions change significantly more often than violation reasons or rule names. Violation reasons are added more often than rule names or rule descriptions and are the least likely to be left unchanged, suggesting that there is more churn with violation reasons.</p>
 <h2 id="punctuated-equilibrium">Punctuated Equilibrium</h2>
 <figure>
-<img src="figures/writeup_figure4_1.png" width="400" alt="" /><figcaption>Figure 2</figcaption>
+<img src="figures/writeup_figure5_1.png" width="400" alt="" /><figcaption>Figure 2</figcaption>
 </figure>
-<p><strong>Figure 2</strong> shows a histogram of the percent of rules altered (by either adding, deleting, or changing their rules) for each sub, with subs that left all their rules unchanged filtered out. We can see evidence for punctuated equilibrium in the significant number of subs that had over 60% of their rules altered. In total, 697 subs changed at least 60% of their rules between the two snapshots. 230 of those subs altered 90-100% of their rules.</p>
+<p><strong>Figure 2</strong> shows a histogram of the percent of rules altered (by either adding, deleting, or changing their rules) for each sub, with subs that left all of their rules unchanged filtered out. We can see evidence for punctuated equilibrium in the significant number of subs that had over 60% of their rules altered. In total, 697 subs changed at least 60% of their rules between the two snapshots. 230 of those subs altered 90-100% of their rules.</p>
 <figure>
-<img src="figures/writeup_figure5_1.png" width="400" alt="" /><figcaption>Figure 3</figcaption>
+<img src="figures/writeup_figure6_1.png" width="400" alt="" /><figcaption>Figure 3</figcaption>
 </figure>
-<p><strong>Figure 3</strong> is a similar histogram, but only showing rules that had their descriptions changed, discounting rules that were added or deleted.</p>
+<p><strong>Figure 3</strong> is a similar histogram, but only showing rules that had their descriptions changed, discounting rules that were added or deleted. The evidence has the caveat that subs with high percentages of rule changes or alterations might in reality have a low count of rules, amplifying the perceived turnover.</p>
 </body>
 </html>
