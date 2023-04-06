@@ -5,3 +5,5 @@ figures/*
 *.csv
 *.json
 "meeting notes.txt"
+writeup.html
+writeup.md

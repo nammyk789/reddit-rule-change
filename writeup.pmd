@@ -98,9 +98,9 @@ plt.title("How Rules Changed Between Snaps")
 plt.show()
 ```
 **Figure 1** is a histogram that summarizes the change types of all the rules we processed between
-the two snapshots. The vast majority of rules were unchanged between the snapshots. Out of the ones 
-that were altered, addition was by far the most frequent type of rule alteration, followed by addition.
-Actual change of the rule description is the rarest type of rule alteration. **Figure 1** indicates that
+the two snapshots. The vast majority of rules were unchanged between the snapshots. Out of the rules that
+had activity, addition was by far the most frequent type of rule activity, followed by addition.
+Actual change of the rule description is the rarest type of rule activity. **Figure 1** indicates that
 the overall corpus of subreddit rules is increasing over time. 
 
 ## Difference in Changes Between Text Fields
@@ -136,44 +136,50 @@ reasons.
 ## Punctuated Equilibrium
 
 ```python, echo=False, caption = "Figure 2", fig = True, width = 400
-# Filter data
-filtered_data = rules_metadata[rules_metadata.changed != 0]
-filtered_data = filtered_data.div(filtered_data.sum(axis=1), axis=0)
-filtered_data = filtered_data.multiply(100)
-filtered_data['not_unchanged'] = 100 - filtered_data['unchanged']
+# get histogram data
+histogram_data = rules_metadata.div(rules_metadata.sum(axis=1), axis=0)
+histogram_data = histogram_data.multiply(100)
+histogram_data['not_unchanged'] = 100 - histogram_data['unchanged']
 
 # Create histogram
-plt.hist(filtered_data['not_unchanged'], bins=10)
+plt.hist(histogram_data['not_unchanged'], bins=10)
 
 # Set axis labels and title
-plt.xlabel("Percent of Rules Altered (>0)")
+plt.xlabel("Percent of Rules Turned Over")
 plt.ylabel("Number of Subs")
-plt.title("Distribution of Rule Alterations per Sub")
+plt.title("Distribution of Rule Turnover per Sub")
+
+# Set y-axis to log scale
+plt.yscale("log")
+
 plt.show()
 ```
 
-**Figure 2** shows a histogram of the percent of rules altered (by either adding, deleting, 
-or changing their rules) for each sub, with subs that left all of their rules unchanged filtered out. 
-We can see evidence for punctuated equilibrium in the significant number of subs that had over 60% 
-of their rules altered. In total, <% len(filtered_data[filtered_data.not_unchanged >= 60]) %> 
-subs changed at least 60% of their rules between the two snapshots. 
-<% len(filtered_data[filtered_data.not_unchanged >= 90]) %> of those subs altered 90-100% of their rules.
+**Figure 2** shows a histogram of the percent of rule activity (by either adding, deleting, 
+or changing their rules) for each sub. We can see evidence for punctuated equilibrium in the significant 
+number of subs that had over 60% of their rules turned over. In total, 
+<% len(histogram_data[histogram_data.not_unchanged >= 60]) %> subs changed at least 60% of their rules 
+between the two snapshots. <% len(histogram_data[histogram_data.not_unchanged >= 90]) %> of those subs turned 
+over 90-100% of their rules.
 
 ```python, echo=False, caption = "Figure 3", fig = True, width = 400
-# Filter data
-filtered_data = rules_metadata[rules_metadata.changed != 0]
-filtered_data = filtered_data.div(filtered_data.sum(axis=1), axis=0)
-filtered_data = filtered_data.multiply(100)
+# get histogram data
+histogram_data = rules_metadata.div(rules_metadata.sum(axis=1), axis=0)
+histogram_data = histogram_data.multiply(100)
 
 # Create histogram
-plt.hist(filtered_data['changed'] + filtered_data['change_added'], bins=10)
+plt.hist(histogram_data['changed'] + histogram_data['change_added'], bins=10)
 
 # Set axis labels and title
-plt.xlabel("Percent of Rules Changed (>0)")
+plt.xlabel("Percent of Rules Changed")
 plt.ylabel("Number of Subs")
 plt.title("Distribution of Rule Changes per Sub")
+
+# Set y-axis to log scale
+plt.yscale("log")
+
 plt.show()
 ```
 **Figure 3** is a similar histogram, but only showing rules that had their descriptions changed, discounting 
 rules that were added or deleted. The evidence has the caveat that subs with high percentages of rule changes 
-or alterations might in reality have a low count of rules, amplifying the perceived turnover. 
+or activity might in reality have a low count of rules, amplifying the perceived turnover. 
