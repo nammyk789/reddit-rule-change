@@ -14,9 +14,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pprint import pprint
 
-rules_df = pd.read_csv("output_data/seth_step3_rules.csv")
-violations_df = pd.read_csv("output_data/seth_step3_violations.csv")
-names_df = pd.read_csv("output_data/seth_step3_names.csv")
+rules_df = pd.read_csv("output_data/seth/step3_description_data.csv")
+violations_df = pd.read_csv("output_data/seth/step3_violation_data.csv")
+names_df = pd.read_csv("output_data/seth/step3_name_data.csv")
 
 def generate_metadata(df):
     # returns a data frame with rows corresponding to subreddits and columns

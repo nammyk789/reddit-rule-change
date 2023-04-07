@@ -5,8 +5,7 @@ from collections import OrderedDict, Counter
 from datetime import datetime
 import csv
 
-count = 0  # these two values are for testing on subsets
-max_count = 1 * 10**5  # these two values are for testing on subsets
+max_count = 1 * 10**2  # for testing on subsets
 sub_count = 0
 sub_rule_versions = {}
 sub_rule_names = {}
@@ -106,7 +105,6 @@ def getRuleName(r:dict, subname:str, latest_snap:bool=False):
     return effective_rname
 
 def run_step0_mako(input_file, output_directory):
-    global count 
     global max_count
     global sub_count
     global sub_rule_versions
@@ -123,6 +121,8 @@ def run_step0_mako(input_file, output_directory):
 
     with lzma.open(input_file, mode='rt') as file:
         for i, line in enumerate(file):
+            if i > max_count:
+                break
             try:
                 sub = json.loads(line)
             except:
@@ -141,8 +141,8 @@ def run_step0_mako(input_file, output_directory):
                     and int(sub['meta_latest']['data']['subscribers']) < 3):
                     continue
                 elif (int(sub['meta_earliest']['data']['created_utc']) -    # or the sub was less than a month old
-                    datetime.strptime(sub['collection_metadata']['rules_earliest']['timestamp'], 
-                                        '%Y-%m-%d %H:%M:%S')) < 60*60*24*30:  
+                    (datetime.strptime(sub['collection_metadata']['rules_earliest']['timestamp'], 
+                                        '%Y-%m-%d %H:%M:%S')).timestamp()) < 60*60*24*30:  
                     continue                                                # we don't care about it
                 else:
                     sub_counter[subname] += 1
@@ -185,9 +185,7 @@ def run_step0_mako(input_file, output_directory):
                 else:
                     latest_drop_subs[subname] = sub_metadata[subname]
             sub_count += 1
-            if count > max_count:
-                break
-            count += 1
+            
 
     print('Finished processing scrapes')
     print(f'Total invalid subs: {len(earliest_drop_subs.keys())}')
@@ -269,3 +267,10 @@ def run_step0_mako(input_file, output_directory):
 
 
     print(f"errors: {errors}")
+
+if __name__ == '__main__':
+    input_data = 'c:/Users/nammy/Desktop/reddit-rule-change/original_data/subreddit_data_export-20230206.jsonl.xz'
+    data_directory = 'c:/Users/nammy/Desktop/reddit-rule-change/output_data/mako'
+    
+    run_step0_mako(input_data, data_directory)
+
