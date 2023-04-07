@@ -19,8 +19,8 @@ def generate_version_properties( versions, metadata, i ):
     names = [ v['short_name'] for v in versions ]
     props['num_rule_versions'] = len(versions)
     props['rule_present_at_creation'] = metadata['rules_present_at_creation'][i] # rule present at subs creation
-    props['rule_present_in_apr'] = metadata['rules_present_in_apr'][i]
-    props['rule_present_in_dec'] = metadata['rules_present_in_dec'][i]
+    props['rule_present_in_earliest_scrape'] = metadata['rules_present_in_earliest_scrape'][i]
+    props['rule_present_in_latest_scrape'] = metadata['rules_present_in_latest_scrape'][i]
     props['descriptions_distance'] = metadata['rules_description_distance'][i]
     props['violation_distance'] = metadata['rules_violation_reason_distance'][i]
     props['name_distance'] = metadata['rules_short_name_distance'][i]
@@ -29,18 +29,18 @@ def generate_version_properties( versions, metadata, i ):
 
     # we don't care about violation reasons that are set to the defaults, so filter them out
     props['num_violation_versions'] = 0
-    props['violation_present_in_apr'] = False
-    props['violation_present_in_dec'] = False
+    props['violation_present_in_earliest_scrape'] = False
+    props['violation_present_in_latest_scrape'] = False
     props['violation_change'] = None
     for v in versions:
         v['violation_exists'] = False
         if v['violation_reason'] not in [None, v['short_name']]:
             v['violation_exists'] = True
             props['num_violation_versions'] += 1
-            if v['date_observed'] == 'April 23':
-                props['violation_present_in_apr'] = True
+            if v['source'] == 'earliest':
+                props['violation_present_in_earliest_scrape'] = True
             else:
-                props['violation_present_in_dec'] = True
+                props['violation_present_in_latest_scrape'] = True
     return( props )
 
 
@@ -72,14 +72,14 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
             #         OR exists in near-identical form in all scrapes
             #             description is levenshtein equal in all versions
             #     all creation dates are in the subs founding batch 
-            #     AND versions exist for all scrapes (has 2 versions (at least one apr) or 3 versions (at least one dec))
+            #     AND versions exist for all scrapes (has 2 versions (at least one early) or 3 versions (at least one late))
             #         (possible num of versions: 2, 3)
             # simple exp: if rule is present in reddit, was present at creation, and is unchanged, mark it unchanged
             if (
                 ( # rule is present in reddit
                     p['num_rule_versions'] > 1
                     or (
-                        p['rule_present_in_dec'] and not p['rule_present_in_apr']
+                        p['rule_present_in_latest_scrape'] and not p['rule_present_in_earliest_scrape']
                     )
                 )
                 and p['rule_present_at_creation'] # created when sub was created
@@ -98,19 +98,19 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
             # AND doesnt exist in later scrapes
             #     doesnt have  3 versions
             #         (possible num of versions: 1, 2)
-            #     has at least one apr version
-            #     doesnt have a dec version
+            #     has at least one early version
+            #     doesnt have a late version
             # all creation dates are in the subs founding batch
             # IF versions exist for identical form in all scrapes
             #         description is equal in all versions
             #         OR exists in near-identical form in all scrapes
             #             description is levenshtein equal in all versions
-            # simple: if rule is in apr but not dec, present at creation, and unchanged, mark it deleted
+            # simple: if rule is in early but not late, present at creation, and unchanged, mark it deleted
             elif (
                 p['num_rule_versions'] < 3 
                 and p['rule_present_at_creation']
                 and (
-                    not p['rule_present_in_dec']
+                    not p['rule_present_in_latest_scrape']
                 )
                 and (
                     p['descriptions_unchanged']
@@ -144,7 +144,7 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
             elif (
                 not p['rule_present_at_creation']
                 and (
-                    p['rule_present_in_dec']
+                    p['rule_present_in_latest_scrape']
                     or p['num_rule_versions'] == 1
                 )
                 and (
@@ -155,7 +155,7 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
                 )
             ):
                 assert( not 'rule_change' in p )
-                if not p['rule_present_in_dec']:
+                if not p['rule_present_in_latest_scrape']:
                     effects['added_deleted'] += 1
                     p['rule_change'] = 'deleted'
                     versions[0]['rule_change'] = 'deleted'
@@ -168,7 +168,7 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
                     versions[0]['rule_change'] = 'added'
             
             ###TEST CHANGE
-                    # AND versions exist for all scrapes (has 2 versions (at least one apr) or 3 versions (at least one dec))
+                    # AND versions exist for all scrapes (has 2 versions (at least one early) or 3 versions (at least one late))
                     # all creation dates are in the subs founding batch
                     #     (possible num of versions: 2, 3)
                     # IF description  difference is large (enough)
@@ -206,7 +206,7 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
                 ( # rule is present in reddit
                     p['num_rule_versions'] > 1
                     or (
-                        p['rule_present_in_dec'] and not p['rule_present_in_apr']
+                        p['rule_present_in_latest_scrape'] and not p['rule_present_in_earliest_scrape']
                     )
                 )
                 and p['rule_present_at_creation'] # created when sub was created
@@ -223,7 +223,7 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
             elif (
                 p['num_rule_versions'] < 2 
                 and p['rule_present_at_creation']
-                and not p['rule_present_in_dec']
+                and not p['rule_present_in_latest_scrape']
             ):
                 p['name_change'] = 'deleted'
                 for v in versions:
@@ -234,7 +234,7 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
             elif (
                 not p['rule_present_at_creation']
                 and (
-                    p['rule_present_in_dec']
+                    p['rule_present_in_latest_scrape']
                     or p['num_rule_versions'] == 1
                 )
                 and (
@@ -242,7 +242,7 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
                     or p['num_rule_versions'] == 1
                 )
             ):
-                if not p['rule_present_in_dec']:
+                if not p['rule_present_in_latest_scrape']:
                     p['name_change'] = 'deleted'
                     versions[0]['name_change'] = 'deleted'
                 else:
@@ -286,7 +286,7 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
             elif (
                 p['num_violation_versions'] < 2 
                 and p['rule_present_at_creation']
-                and not p['violation_present_in_dec']
+                and not p['violation_present_in_latest_scrape']
             ):
                 p['violation_change'] = 'deleted'
                 for v in versions:
@@ -295,7 +295,7 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
             
             # violation is added
             elif ((
-                    p['violation_present_in_dec']
+                    p['violation_present_in_latest_scrape']
                     or p['num_violation_versions'] == 1
                 )
                 and (
@@ -303,7 +303,7 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
                     or p['num_violation_versions'] == 1
                 )
             ):
-                if not p['violation_present_in_dec']:
+                if not p['violation_present_in_latest_scrape']:
                     p['violation_change'] = 'deleted'
                     for v in versions:
                         v['violation_change'] = None
@@ -312,7 +312,7 @@ with open(rules_file, 'r') as rules_file, open(metadata_file, 'r') as metadata_f
                     p['violation_change'] = 'added'
                     for v in versions:
                         v['violation_change'] = None
-                        if v['date_observed'] == 'December 10':
+                        if v['source'] == 'latest':
                             v['violation_change'] = 'added'
                     
             

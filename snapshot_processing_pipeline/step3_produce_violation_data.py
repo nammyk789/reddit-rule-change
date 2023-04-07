@@ -9,9 +9,6 @@ import nltk
 from datetime import datetime
 #nltk.download('punkt')
 
-header = ('source', 'domain', 'lineID', 'change_type', 'before/after', 
-        'timestamp', 'timestamp_rule', 'communityID', 'ref', 'ruleID', 'text')
-
 
 def reddit_clean_text( rule_text):
     ### string handling
@@ -40,8 +37,11 @@ def reddit_clean_text( rule_text):
     rule_text = rule_text.replace('\n', '. ') # for reddit
     return( rule_text )
 
-def step_3():
-    with open('mako snapshot processing pipeline/step2_rules_processed.json', 'r', encoding='utf-8') as rules_file, open('jupyter notebooks/mako_step3_rules.csv','w', encoding='utf-8') as outfile:
+def run_step3_violations(data_directory:str):
+    header = ('source', 'domain', 'lineID', 'change_type', 'before/after', 
+        'timestamp', 'timestamp_rule', 'communityID', 'ref', 'ruleID', 'violationReason')
+    
+    with open(f'{data_directory}/step2_rules_processed.json', 'r', encoding='utf-8') as rules_file, open(f'{data_directory}/step3_violation_data.csv','w', encoding='utf-8') as outfile:
         subs_all = json.load( rules_file )
         writer = csv.DictWriter(outfile, fieldnames=header)
         writer.writeheader()
@@ -55,22 +55,30 @@ def step_3():
                 sentences_seen =[]
                 # PREP text (breakdown setences within versions and get uniqueness
                 for j, r in enumerate(versions):
-                    rule_text_full = reddit_clean_text(r['description'] )
-                    r['rule_text_full'] = rule_text_full
-                    r['rule_sentences'] = []
-                    rule_texts = nltk.sent_tokenize( rule_text_full )
-                    for rule in rule_texts:
-                        if rule not in sentences_seen:
-                            r['rule_sentences'].append( rule )
-                            sentences_seen.append( rule )
+                    if r['violation_reason'] != None:
+                        rule_text_full = reddit_clean_text( r['violation_reason'] )
+                        r['violation_text_full'] = rule_text_full
+                        r['violation_sentences'] = []
+                        rule_texts = nltk.sent_tokenize( rule_text_full )
+                        for rule in rule_texts:
+                            if rule not in sentences_seen:
+                                r['violation_sentences'].append( rule )
+                                sentences_seen.append( rule )
+                    else:
+                        r['violation_text_full'] = r['violation_reason']
                 ### NOW build rows
                 for j, r in enumerate(versions):
                     #print( r )
                     ### skip "unchanged" versions as eventually added or deleted or something, 
                     ##    unless that rul was never changed, then record one version of it 
-                    if p['rule_change'] != 'unchanged' and r['rule_change'] == 'unchanged':
+                    # also skip the violation reasons that are not legitimate
+                    if not r['violation_exists']:
                         continue
-                    elif p['rule_change'] == 'unchanged' and j > 0:
+                    if p['violation_change'] != 'unchanged' and r['violation_change'] == 'unchanged':
+                        continue
+                    elif p['violation_change'] == 'unchanged' and j > 0:
+                        continue
+                    elif r['violation_change'] == None:
                         continue
                     ### or skip all unchanged rules
                     # if p['change'] != 'unchanged':
@@ -79,14 +87,14 @@ def step_3():
                           'source' : r['source']
                         , 'domain' : 'reddit'
                         , 'lineID' : r['priority']
-                        , 'change_type' : p['rule_change']
-                        , 'before/after' : r['rule_change']
+                        , 'change_type' : p['violation_change']
+                        , 'before/after' : r['violation_change']
                         , 'timestamp' : r['date_observed']
                         , 'timestamp_rule' : r['created_utc_date'].replace('-', '') + '01'
                         , 'communityID' : subname
                         , 'ref' : 'https://www.reddit.com/r/{}/'.format( subname )
                         , 'ruleID': r['rule_ID'] 
-                        , 'text': r['rule_text_full']
+                        , 'violationReason': r['violation_text_full']
                     }
                     writer.writerow(rule_out)
 if __name__ == "__main__":

@@ -120,12 +120,19 @@ with lzma.open(file_path, mode='rt') as file:
         if sub_counter[subname] > 0: # skip duplicates
             continue
         if 'rules_earliest' in sub.keys() and 'rules' in sub['rules_earliest'].keys():
-            if ((len(sub['rules_earliest']['rules']) > 0) # if the sub has rules
-                & ('display_name' in sub['meta_latest']['data'].keys())): # and two valid snapshots
-                sub_counter[subname] += 1
-                # print(subname)
-            else:
+            if (('display_name' not in sub['meta_latest']['data'].keys()) # if second snapshot does not exist
+                or (len(sub['rules_earliest']['rules']) <= 0
+                    and len(sub['rules_latest']['rules']) <= 0)): # or the sub does not have rules in either snap
                 continue
+            elif (int(sub['meta_earliest']['data']['subscribers']) < 3   # or has fewer than 3 subscribers in both snaps
+                  and int(sub['meta_latest']['data']['subscribers']) < 3):
+                continue
+            elif (int(sub['meta_earliest']['data']['created_utc']) -    # or the sub was less than a month old
+                  datetime.strptime(sub['collection_metadata']['rules_earliest']['timestamp'], 
+                                    '%Y-%m-%d %H:%M:%S')) < 60*60*24*30:  
+                continue                                                # we don't care about it
+            else:
+                sub_counter[subname] += 1
         else:
             continue
 

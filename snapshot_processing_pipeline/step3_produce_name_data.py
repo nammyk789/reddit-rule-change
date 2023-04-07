@@ -9,9 +9,6 @@ import nltk
 from datetime import datetime
 #nltk.download('punkt')
 
-header = ('source', 'domain', 'lineID', 'change_type', 'before/after', 
-        'timestamp', 'timestamp_rule', 'communityID', 'ref', 'ruleID', 'text')
-
 
 def reddit_clean_text( rule_text):
     ### string handling
@@ -40,8 +37,10 @@ def reddit_clean_text( rule_text):
     rule_text = rule_text.replace('\n', '. ') # for reddit
     return( rule_text )
 
-def step_3():
-    with open('mako snapshot processing pipeline/step2_rules_processed.json', 'r', encoding='utf-8') as rules_file, open('jupyter notebooks/mako_step3_rules.csv','w', encoding='utf-8') as outfile:
+def run_step3_names(data_directory:str):
+    header = ('source', 'domain', 'lineID', 'change_type', 'before/after', 
+        'timestamp', 'timestamp_rule', 'communityID', 'ref', 'ruleID', 'ruleName')
+    with open(f'{data_directory}/step2_rules_processed.json', 'r', encoding='utf-8') as rules_file, open(f'{data_directory}/step3_name_data.csv','w', encoding='utf-8') as outfile:
         subs_all = json.load( rules_file )
         writer = csv.DictWriter(outfile, fieldnames=header)
         writer.writeheader()
@@ -55,22 +54,22 @@ def step_3():
                 sentences_seen =[]
                 # PREP text (breakdown setences within versions and get uniqueness
                 for j, r in enumerate(versions):
-                    rule_text_full = reddit_clean_text(r['description'] )
-                    r['rule_text_full'] = rule_text_full
-                    r['rule_sentences'] = []
+                    rule_text_full = reddit_clean_text( r['short_name'] )
+                    r['name_text_full'] = rule_text_full
+                    r['name_sentences'] = []
                     rule_texts = nltk.sent_tokenize( rule_text_full )
                     for rule in rule_texts:
                         if rule not in sentences_seen:
-                            r['rule_sentences'].append( rule )
+                            r['name_sentences'].append( rule )
                             sentences_seen.append( rule )
                 ### NOW build rows
                 for j, r in enumerate(versions):
                     #print( r )
                     ### skip "unchanged" versions as eventually added or deleted or something, 
                     ##    unless that rul was never changed, then record one version of it 
-                    if p['rule_change'] != 'unchanged' and r['rule_change'] == 'unchanged':
+                    if p['name_change'] != 'unchanged' and r['name_change'] == 'unchanged':
                         continue
-                    elif p['rule_change'] == 'unchanged' and j > 0:
+                    elif p['name_change'] == 'unchanged' and j > 0:
                         continue
                     ### or skip all unchanged rules
                     # if p['change'] != 'unchanged':
@@ -79,15 +78,15 @@ def step_3():
                           'source' : r['source']
                         , 'domain' : 'reddit'
                         , 'lineID' : r['priority']
-                        , 'change_type' : p['rule_change']
-                        , 'before/after' : r['rule_change']
+                        , 'change_type' : p['name_change']
+                        , 'before/after' : r['name_change']
                         , 'timestamp' : r['date_observed']
                         , 'timestamp_rule' : r['created_utc_date'].replace('-', '') + '01'
                         , 'communityID' : subname
                         , 'ref' : 'https://www.reddit.com/r/{}/'.format( subname )
                         , 'ruleID': r['rule_ID'] 
-                        , 'text': r['rule_text_full']
+                        , 'ruleName': r['name_text_full']
                     }
                     writer.writerow(rule_out)
-if __name__ == "__main__":
-    step_3()
+# if __name__ == "__main__":
+#     step_3()

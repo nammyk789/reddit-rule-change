@@ -9,10 +9,6 @@ import nltk
 from datetime import datetime
 #nltk.download('punkt')
 
-header = ('source', 'domain', 'lineID', 'change_type', 'before/after', 
-        'timestamp', 'timestamp_rule', 'communityID', 'ref', 'ruleID', 'text')
-
-
 def reddit_clean_text( rule_text):
     ### string handling
     rule_text = rule_text.replace(r'"', "'") # for reddit: lots of quotes to deal with
@@ -40,8 +36,10 @@ def reddit_clean_text( rule_text):
     rule_text = rule_text.replace('\n', '. ') # for reddit
     return( rule_text )
 
-def step_3():
-    with open('mako snapshot processing pipeline/step2_rules_processed.json', 'r', encoding='utf-8') as rules_file, open('jupyter notebooks/mako_step3_rules.csv','w', encoding='utf-8') as outfile:
+def run_step3_descriptions(data_directory:str):
+    header = ('source', 'domain', 'lineID', 'change_type', 'before/after', 
+        'timestamp', 'timestamp_rule', 'communityID', 'ref', 'ruleID', 'text')
+    with open(f'{data_directory}/step2_rules_processed.json', 'r', encoding='utf-8') as rules_file, open(f'{data_directory}/step3_description_data.csv','w', encoding='utf-8') as outfile:
         subs_all = json.load( rules_file )
         writer = csv.DictWriter(outfile, fieldnames=header)
         writer.writeheader()
@@ -89,5 +87,5 @@ def step_3():
                         , 'text': r['rule_text_full']
                     }
                     writer.writerow(rule_out)
-if __name__ == "__main__":
-    step_3()
+# if __name__ == "__main__":
+#     step_3()

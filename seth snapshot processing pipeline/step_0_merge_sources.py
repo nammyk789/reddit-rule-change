@@ -6,15 +6,13 @@ import datetime
 
 file1_path = "original data/full_reddit_metadata_apr_23.jsonl"
 file2_path = "original data/full_subreddit_metadata_dec_10.jsonl"
-# file1_path = "test1.jsonl"
-# file2_path = "test2.jsonl"
 
 def standardizeRule(source:str, sub:dict, r:dict, scrape_line:int, date_observed:str):
     """ get a scraped rule into standard form"""
     subname = sub["sub_name"].lower()
     r_copy = {} # create a copy of the rule where key names are consistent
     r_copy['source'] = source
-    r_copy['date_observed'] = date_observed #TODO: figure out what this is for
+    r_copy['date_observed'] = date_observed 
     r_copy['rule_count'] = len(sub['rules_widget'])
     r_copy['scrape_count'] = sub_counter[subname]
     r_copy['scrape_line'] = scrape_line
@@ -87,7 +85,7 @@ with open(file1_path) as apr_23:
             sub_descriptions[subname] = []
             sub_timestamps[subname] = []
         for r in sub['rules_widget']:
-            r = standardizeRule('apr_23', sub, r, i, "April 23")
+            r = standardizeRule('earliest', sub, r, i, '2021-04-23 00:00:00')
 
 
             ### aggregate
@@ -184,7 +182,7 @@ with open(file2_path) as dec_10:
             sub_timestamps[subname] = []
             sub_count += 1
         for r in sub['rules_widget']:
-            r = standardizeRule('dec_10', sub, r, i, 'December 10')
+            r = standardizeRule('latest', sub, r, i, '2021-12-10 00:00:00')
         
         ### aggregate
             ## decide whether to add rule version to list of alternative rule versions
@@ -261,7 +259,7 @@ for sub in subs_scraped:
         sub_rule_versions.pop(sub)
 
 
-with open('seth snapshot processing pipeline/step0_rules_merged_test.json', 'w') as outfile:
+with open('seth snapshot processing pipeline/step0_rules_merged.json', 'w') as outfile:
     json.dump(sub_rule_versions, outfile)
 print( 'SCRIPT end' )
 

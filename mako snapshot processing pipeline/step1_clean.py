@@ -88,7 +88,7 @@ with open(rules_file, 'r') as rules_file:
                 assert( len(version_edit_times) == 2 ) # else I need a more complicated fix that reverse and more diagnoisois
             assert( version_edit_times == sorted(version_edit_times) )
             if len(version_edit_times) == 2 :
-                if datetime.strptime(rule_versions[0]['date_observed'], '%Y-%m-%d %H:%M:%S') > datetime.strptime(rule_versions[1]['date_observed'], '%Y-%m-%d %H:%M:%S'):  #TODO: restore this later
+                if datetime.strptime(rule_versions[0]['date_observed'], '%Y-%m-%d %H:%M:%S') > datetime.strptime(rule_versions[1]['date_observed'], '%Y-%m-%d %H:%M:%S'):  
                     ### this is a wired thing that shouldn't happen but does
                     # pprint( rule_versions )
                     violation_count += 1

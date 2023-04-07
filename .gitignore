@@ -5,5 +5,5 @@ figures/*
 *.csv
 *.json
 "meeting notes.txt"
-writeup.html
-writeup.md
+"writeup.html"
+"writeup.md"

@@ -4,9 +4,8 @@
 go through rules and make sure data fit strict assumptions. also enrich it with useful metadata
 """
 import json
-import datetime
 from pprint import pprint
-import collections
+from datetime import datetime
 import numpy as np
 from numpy import diff, argsort
 
@@ -70,14 +69,10 @@ with open(rules_file, 'r') as rules_file:
         for rname, rule_versions in rules.items():
             version_edit_times = [] # edit times of all versions of all rules
             version_observed_times = [] # date observed of all versions of all rules
-            ## TEST versions are unique
-            #print()
-            #pprint( rule_versions)
-            assert(len([v['scrape_line'] for v in rule_versions]) == len(set([v['scrape_line'] for v in rule_versions])))
             # BUILD
             for version in rule_versions:
                 version['created_utc'] = int( version['created_utc'] )
-                version['created_utc_date'] = datetime.datetime.fromtimestamp(version['created_utc']).strftime('%Y-%m')
+                version['created_utc_date'] = datetime.fromtimestamp(version['created_utc']).strftime('%Y-%m')
                 rule_edit_times.append( version['created_utc'] )
                 version_edit_times.append( version['created_utc'] )
                 version_observed_times.append( version['date_observed'] )
@@ -87,13 +82,13 @@ with open(rules_file, 'r') as rules_file:
             ### TEST
             ### versions must be in the right order. whatever that means.  but some reddit scapres are from before the wayback scrape. weird.
             ### get "raw" edit times before cleaning edit times in versions
-            if version_edit_times != sorted(version_edit_times): # TODO does this need a fix?
+            if version_edit_times != sorted(version_edit_times): 
                 rule_versions.reverse()
                 version_edit_times.reverse()
                 assert( len(version_edit_times) == 2 ) # else I need a more complicated fix that reverse and more diagnoisois
             assert( version_edit_times == sorted(version_edit_times) )
             if len(version_edit_times) == 2 :
-                if rule_versions[0]['date_observed'] == 'December 10' and rule_versions[1]['date_observed']  == 'April 23':  #TODO: restore this later
+                if datetime.strptime(rule_versions[0]['date_observed'], '%Y-%m-%d %H:%M:%S') > datetime.strptime(rule_versions[1]['date_observed'], '%Y-%m-%d %H:%M:%S'):  
                     ### this is a wired thing that shouldn't happen but does
                     # pprint( rule_versions )
                     violation_count += 1
@@ -152,7 +147,7 @@ with open(rules_file, 'r') as rules_file:
             to_add = False
             # to be registeresd as present during creation, a rule needs to have a wayback scrape and needs to have been present within a month of the first rule seen
             # UGH!  or not.  there exist rules that were present at creation, that are only in reddit.
-            if True or any([ v['source'] == 'apr_23' for v in versions ]):
+            if True or any([ v['source'] == 'earliest' for v in versions ]):
                 for v in versions:
                     if v['created_utc'] - first_sub_rule_creation < 60*60*24*7*4:
                         to_add = True
@@ -181,20 +176,20 @@ with open(rules_file, 'r') as rules_file:
 
         ### BUILD
         # create rule_presence boolean list. len num of versions + 1.  was rule present in each scrape?
-        rules_at_apr_scrape = []
-        rules_at_dec_scrape = []
+        rules_at_earliest_scrape = []
+        rules_at_latest_scrape = []
         for i, versions in enumerate(rules.values()):
-            versions_at_apr_scrape = [v['source'] == 'apr_23' for v in versions]
-            versions_at_dec_scrape = [v['source'] == 'dec_10' for v in versions]
-            rules_at_apr_scrape.append( any( versions_at_apr_scrape ) )
-            rules_at_dec_scrape.append( any( versions_at_dec_scrape ) )
-            if any(versions_at_apr_scrape):
-                assert( any([v['source'] == 'apr_23' for v in versions]))
-            if any(versions_at_dec_scrape):
-                assert( any([v['source'] == 'dec_10' for v in versions]))
-        assert([ r1 ^ r2 for r1, r2 in zip(rules_at_apr_scrape, rules_at_dec_scrape)])
-        rule_meta_data[subname]['rules_present_in_apr'] = rules_at_apr_scrape
-        rule_meta_data[subname]['rules_present_in_dec'] = rules_at_dec_scrape
+            versions_at_earliest_scrape = [v['source'] == 'earliest' for v in versions]
+            versions_at_latest_scrape = [v['source'] == 'latest' for v in versions]
+            rules_at_earliest_scrape.append( any( versions_at_earliest_scrape ) )
+            rules_at_latest_scrape.append( any( versions_at_latest_scrape ) )
+            if any(versions_at_earliest_scrape):
+                assert( any([v['source'] == 'earliest' for v in versions]))
+            if any(versions_at_latest_scrape):
+                assert( any([v['source'] == 'latest' for v in versions]))
+        assert([ r1 ^ r2 for r1, r2 in zip(rules_at_earliest_scrape, rules_at_latest_scrape)])
+        rule_meta_data[subname]['rules_present_in_earliest_scrape'] = rules_at_earliest_scrape
+        rule_meta_data[subname]['rules_present_in_latest_scrape'] = rules_at_latest_scrape
 
         ### BUILD
         # measure distance of neighboring versions from each other
@@ -233,23 +228,6 @@ with open(rules_file, 'r') as rules_file:
         rule_meta_data[subname]['rules_description_distance'] = description_distances
         rule_meta_data[subname]['rules_short_name_distance'] = short_name_distances
         rule_meta_data[subname]['rules_violation_reason_distance'] = violation_reason_distances
-
-        ### BUILD
-        ### DELETION CONDITION: the firs scrape has rule creation dates older than the latest in the second scrape
-        ### 
-        if False:
-            scrape_time_means = [0,0]
-            for scrape_num, times in scrape_times.items():
-                scrape_time_means[ scrape_num - 1 ] = sum(times)/len(times)
-            if len( scrape_times ) == 2:
-                if scrape_time_means[0] > scrape_time_means[1]:
-                    ### deletion indicator
-                    for rname, versions in rules.items():
-                        for v in versions:
-                            if v['scrape_count'] == 1:
-                                assert( v['source'] == 'wb' ) # not necessarily true, effectively true in this data
-                                if v['created_utc'] not in scrape_times[2]:
-                                    v['change'] = 'deleted'
 
 
     print( "num subs total:", sub_count )
