@@ -27,6 +27,21 @@ def generate_version_properties( versions, metadata, i):
     props['descriptions_unchanged'] = (1 == len(set(descs))) # also true if only present at creation
     props['name_unchanged'] = (1 == len(set(names)))
 
+    # we don't care about descriptions that are set to the defaults, so filter them out
+    props['num_description_versions'] = 0
+    props['description_present_in_earliest_scrape'] = False
+    props['description_present_in_latest_scrape'] = False
+    for v in versions:
+        v['description_exists'] = False
+        if v['description'] not in [None, v['short_name'], '']:
+            v['description_exists'] = True
+            props['num_description_versions'] += 1
+            if v['source'] == 'earliest':
+                props['description_present_in_earliest_scrape'] = True
+            else:
+                props['description_present_in_latest_scrape'] = True
+
+
     # we don't care about violation reasons that are set to the defaults, so filter them out
     props['num_violation_versions'] = 0
     props['violation_present_in_earliest_scrape'] = False
@@ -34,7 +49,7 @@ def generate_version_properties( versions, metadata, i):
     props['violation_change'] = None
     for v in versions:
         v['violation_exists'] = False
-        if v['violation_reason'] not in [None, v['short_name']]:
+        if v['violation_reason'] not in [None, v['short_name'], '']:
             v['violation_exists'] = True
             props['num_violation_versions'] += 1
             if v['source'] == 'earliest':
@@ -76,13 +91,7 @@ def run_step2(data_directory:str):
                 #         (possible num of versions: 2, 3)
                 # simple exp: if rule is present in reddit, was present at creation, and is unchanged, mark it unchanged
                 if (
-                    ( # rule is present in reddit
-                        p['num_rule_versions'] > 1
-                        or (
-                            p['rule_present_in_latest_scrape'] and not p['rule_present_in_earliest_scrape']
-                        )
-                    )
-                    and p['rule_present_at_creation'] # created when sub was created
+                    p['num_description_versions'] > 1
                     and ( # description basically the same
                         p['descriptions_unchanged']
                         or
@@ -107,24 +116,15 @@ def run_step2(data_directory:str):
                 #             description is levenshtein equal in all versions
                 # simple: if rule is in early but not late, present at creation, and unchanged, mark it deleted
                 elif (
-                    p['num_rule_versions'] < 3 
-                    and p['rule_present_at_creation']
-                    and (
-                        not p['rule_present_in_latest_scrape']
-                    )
-                    and (
-                        p['descriptions_unchanged']
-                        or
-                        p['descriptions_distance'] < 10
-                        or p['num_rule_versions'] == 1
-                    )
+                    (not p['description_present_in_latest_scrape'])
+                    and p['num_description_versions'] == 1
                 ):
                     effects['deleted'] += 1
                     p['rule_change'] = 'deleted'
                     for v in versions:
                         v['rule_change'] = 'unchanged'
                     versions[-1]['rule_change'] = 'deleted'
-                    if p['num_rule_versions'] == 2:
+                    if p['num_description_versions'] == 2:
                         if not ( int(versions[0]['date_observed']) <= int(versions[1]['date_observed'] ) ):
                             print()
                             print( rname )
@@ -142,24 +142,15 @@ def run_step2(data_directory:str):
                 #         OR exists in near-identical form in all scrapes
                 #             description is levenshtein equal in all versions
                 elif (
-                    not p['rule_present_at_creation']
-                    and (
-                        p['rule_present_in_latest_scrape']
-                        or p['num_rule_versions'] == 1
-                    )
-                    and (
-                        p['descriptions_unchanged']
-                        or
-                        p['descriptions_distance'] < 10
-                        or p['num_rule_versions'] == 1
-                    )
+                    p['description_present_in_latest_scrape']
+                    and p['num_description_versions'] == 1
                 ):
                     assert( not 'rule_change' in p )
-                    if not p['rule_present_in_latest_scrape']:
+                    if not p['description_present_in_latest_scrape']:
                         effects['added_deleted'] += 1
                         p['rule_change'] = 'deleted'
                         versions[0]['rule_change'] = 'deleted'
-                        assert( p['num_rule_versions'] == 1 )
+                        assert( p['num_description_versions'] == 1 )
                     else:
                         effects['added'] += 1
                         p['rule_change'] = 'added'
@@ -182,7 +173,7 @@ def run_step2(data_directory:str):
                         #         OR
                         #         [before, before, after] #if all three are different
                 elif (
-                    p['num_rule_versions'] > 1
+                    p['num_description_versions'] > 1
                     and (
                         not p['descriptions_unchanged']
                         and
@@ -190,14 +181,17 @@ def run_step2(data_directory:str):
                     )
                 ):
                     effects['changed'] += 1
-                    if p['num_rule_versions'] == 2:
-                        if p['rule_present_at_creation']:
-                            p['rule_change'] = 'changed'
-                            versions[0]['rule_change'] = 'before'
-                        else:
-                            p['rule_change'] = 'change_added'
-                            versions[0]['rule_change'] = 'added'
-                        versions[-1]['rule_change'] = 'after'
+                    if p['num_description_versions'] == 2:
+                        p['rule_change'] = 'changed'
+                        versions[0]['rule_change'] = 'before'
+                        versions[1]['rule_change'] = 'after'
+                
+                elif p['num_description_versions'] == 0:
+                    effects['never_present'] += 1
+                    p['rule_change'] = 'never_present'
+                    for v in versions:
+                        v['rule_change'] = 'never_present'
+
 
                 
                 # NAME CHANGE TESTS            
@@ -205,11 +199,7 @@ def run_step2(data_directory:str):
                 if (
                     ( # rule is present in reddit
                         p['num_rule_versions'] > 1
-                        or (
-                            p['rule_present_in_latest_scrape'] and not p['rule_present_in_earliest_scrape']
-                        )
                     )
-                    and p['rule_present_at_creation'] # created when sub was created
                     and ( # description basically the same
                         p['name_distance'] < 10
                         or p['name_unchanged']
@@ -222,7 +212,6 @@ def run_step2(data_directory:str):
                 # name was deleted
                 elif (
                     p['num_rule_versions'] < 2 
-                    and p['rule_present_at_creation']
                     and not p['rule_present_in_latest_scrape']
                 ):
                     p['name_change'] = 'deleted'
@@ -232,9 +221,7 @@ def run_step2(data_directory:str):
 
                 # name was added
                 elif (
-                    not p['rule_present_at_creation']
-                    and (
-                        p['rule_present_in_latest_scrape']
+                    ( p['rule_present_in_latest_scrape']
                         or p['num_rule_versions'] == 1
                     )
                     and (
@@ -256,27 +243,15 @@ def run_step2(data_directory:str):
                     p['num_rule_versions'] > 1
                     and p['name_distance'] >= 10
                 ):
-                    if p['rule_present_at_creation']:
-                        p['name_change'] = 'changed'
-                        versions[0]['name_change'] = 'before'
-                    else:
-                        p['name_change'] = 'change_added'
-                        versions[0]['name_change'] = 'added'
+                    p['name_change'] = 'changed'
+                    versions[0]['name_change'] = 'before'
                     versions[-1]['name_change'] = 'after'
                 
-                for v in versions:
-                    if v['rule_change'] == 'added' and v['name_change'] != 'added':
-                        print(v['rule_ID'])
-                        break
 
                 # VIOLATION REASON CHANGE TESTS
                 # violation reasons are unchanged
                 if (p['num_violation_versions'] > 1
-                    and p['rule_present_at_creation'] # created when sub was created
-                    and ( # description basically the same
-                        p['violation_distance'] < 5
-                        or p['violation_distance'] == float("Inf") # case where there's only one version
-                    )
+                    and p['violation_distance'] < 5
                 ):
                     p['violation_change'] = 'unchanged'
                     for v in versions:
@@ -284,8 +259,7 @@ def run_step2(data_directory:str):
                 
                 # violation reason is deleted
                 elif (
-                    p['num_violation_versions'] < 2 
-                    and p['rule_present_at_creation']
+                    p['num_violation_versions'] == 1 
                     and not p['violation_present_in_latest_scrape']
                 ):
                     p['violation_change'] = 'deleted'
@@ -294,40 +268,30 @@ def run_step2(data_directory:str):
                     versions[0]['violation_change'] = 'deleted'
                 
                 # violation is added
-                elif ((
-                        p['violation_present_in_latest_scrape']
-                        or p['num_violation_versions'] == 1
-                    )
-                    and (
-                        p['violation_distance'] < 5
-                        or p['num_violation_versions'] == 1
-                    )
+                elif (
+                    p['num_violation_versions'] == 1 
+                    and not p['violation_present_in_earliest_scrape']
                 ):
-                    if not p['violation_present_in_latest_scrape']:
-                        p['violation_change'] = 'deleted'
-                        for v in versions:
-                            v['violation_change'] = None
-                        versions[0]['violation_change'] = 'deleted'
-                    else:
-                        p['violation_change'] = 'added'
-                        for v in versions:
-                            v['violation_change'] = None
-                            if v['source'] == 'latest':
-                                v['violation_change'] = 'added'
+
+                    p['violation_change'] = 'added'
+                    for v in versions:
+                        v['violation_change'] = None
+                    versions[0]['violation_change'] = 'added'
                         
                 
                 # violation is changed
                 elif (
-                    p['num_violation_versions'] > 1
+                    p['num_violation_versions'] == 2
                     and p['violation_distance'] >= 5
                 ):
-                    if p['rule_present_at_creation']:
-                        p['violation_change'] = 'changed'
-                        versions[0]['violation_change'] = 'before'
-                    else:
-                        p['violation_change'] = 'change_added'
-                        versions[0]['violation_change'] = 'added'
+                    p['violation_change'] = 'changed'
+                    versions[0]['violation_change'] = 'before'
                     versions[-1]['violation_change'] = 'after'
+                
+                else:
+                    p['violation_change'] = 'never_present'
+                    for v in versions:
+                        v['violation_change'] = 'never_present'
 
 
         ### TEST
@@ -340,10 +304,10 @@ def run_step2(data_directory:str):
         is_catastrophe = False
         for subname, rules in rules_all.items():
             metadata = metadata_all[ subname ] # creates pointer, not copy
-            if all([p['rule_change'] in ('deleted', 'added') for p in metadata['rule_properties']]):
+            if all([p['name_change'] in ('deleted', 'added') for p in metadata['rule_properties']]):
                 catastrophe_add_or_delete += 1
                 is_catastrophe = True
-            if all([p['rule_change'] in ('changed') for p in metadata['rule_properties']]):
+            if all([p['name_change'] in ('changed') for p in metadata['rule_properties']]):
                 catastrophe_changes += 1
                 is_catastrophe = True
             if is_catastrophe:
@@ -377,6 +341,7 @@ def run_step2(data_directory:str):
     print(f"rules that were added: {effects['added']}")
     print(f"rules that were deleted: {effects['deleted']}")
     print(f"rules that were changed: {effects['changed']}")
+    print(f"rules that were never present: {effects['never_present']}")
     print(f"subs that added or deleted every rule: {catastrophe_add_or_delete}")
     print(f"subs that changed every rule: {catastrophe_changes}")
 
@@ -388,3 +353,7 @@ def run_step2(data_directory:str):
     with open(f'{data_directory}/step2_rules_processed.json', 'w') as outfile:
         print( len( metadata_all ) )
         json.dump(metadata_all, outfile)
+
+if __name__ == '__main__':
+    data_directory = 'c:/Users/nammy/Desktop/reddit-rule-change/output_data/seth'
+    run_step2(data_directory)

@@ -10,6 +10,7 @@ import numpy as np
 from numpy import diff, argsort
 
 def run_step1(data_directory:str):
+    drop_subs = []
     DO_LEVENSHTEIN = True
     ### helpers
     #from: https://stackabuse.com/levenshtein-distance-and-text-similarity-in-python/
@@ -49,7 +50,6 @@ def run_step1(data_directory:str):
 
     rule_meta_data = {}
     allrules  = {}
-    violation_count = 0
     with open(f'{data_directory}/step0_rules_merged.json', 'r') as rules_file:
         allrules = json.load( rules_file )
         print( "num subs total:", len( allrules ) )
@@ -90,7 +90,7 @@ def run_step1(data_directory:str):
                     if datetime.strptime(rule_versions[0]['date_observed'], '%Y-%m-%d %H:%M:%S') > datetime.strptime(rule_versions[1]['date_observed'], '%Y-%m-%d %H:%M:%S'):  
                         ### this is a wired thing that shouldn't happen but does
                         # pprint( rule_versions )
-                        violation_count += 1
+                        drop_subs.append(subname)
                 # BUILD
                 # record the earliest version of this rule
                 rule_edit_min_times.append( min( version_edit_times))
@@ -188,6 +188,8 @@ def run_step1(data_directory:str):
                     assert( any([v['source'] == 'latest' for v in versions]))
             assert([ r1 ^ r2 for r1, r2 in zip(rules_at_earliest_scrape, rules_at_latest_scrape)])
             rule_meta_data[subname]['rules_present_in_earliest_scrape'] = rules_at_earliest_scrape
+            if rules_at_earliest_scrape[0] != rule_meta_data[subname]['rules_present_at_creation'][0]:
+                drop_subs.append(subname)
             rule_meta_data[subname]['rules_present_in_latest_scrape'] = rules_at_latest_scrape
 
             ### BUILD
@@ -229,8 +231,13 @@ def run_step1(data_directory:str):
             rule_meta_data[subname]['rules_violation_reason_distance'] = violation_reason_distances
 
 
-        print( "num subs total:", sub_count )
-        print( "violations:", violation_count)
+        # get rid of violations
+        for sub in set(drop_subs):
+            allrules.pop(sub)
+            rule_meta_data.pop(sub)
+
+        print( "num subs total:", len(allrules) )
+        print( "violations:", len(set(drop_subs)))
 
         if DO_LEVENSHTEIN:
             filename = f'{data_directory}/step1_rules_cleaned.json'
@@ -242,3 +249,7 @@ def run_step1(data_directory:str):
         with open(f'{data_directory}/step1_rules_metadata.json', 'w') as outfile2:
             print( len( rule_meta_data ) )
             json.dump(rule_meta_data, outfile2)
+
+if __name__ == '__main__':
+    data_directory = 'c:/Users/nammy/Desktop/reddit-rule-change/output_data/seth'
+    run_step1(data_directory)

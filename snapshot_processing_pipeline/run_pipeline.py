@@ -8,8 +8,8 @@ from step3_produce_violation_data import *
 
 
 def run_seth_data():
-    scrape_1_path = 'c:/Users/nammy/Desktop/reddit-rule-change/original_data data/full_reddit_metadata_apr_23.jsonl'
-    scrape_2_path = 'c:/Users/nammy/Desktop/reddit-rule-change/original_data data/full_subreddit_metadata_dec_10.jsonl'
+    scrape_1_path = 'c:/Users/nammy/Desktop/reddit-rule-change/original_data/full_reddit_metadata_apr_23.jsonl'
+    scrape_2_path = 'c:/Users/nammy/Desktop/reddit-rule-change/original_data/full_subreddit_metadata_dec_10.jsonl'
     data_directory = 'c:/Users/nammy/Desktop/reddit-rule-change/output_data/seth'
 
     print('STEP 0')
@@ -43,7 +43,7 @@ def run_step3(data_directory):
 
 
 if __name__ == '__main__':
-    # print('RUNNING SETH DATA')
-    # run_seth_data()
+    print('RUNNING SETH DATA')
+    run_seth_data()
     print('RUNNING MAKO DATA')
     run_mako_data()

@@ -70,6 +70,8 @@ def run_step3_descriptions(data_directory:str):
                         continue
                     elif p['rule_change'] == 'unchanged' and j > 0:
                         continue
+                    elif p['rule_change'] == 'never_present':
+                        continue
                     ### or skip all unchanged rules
                     # if p['change'] != 'unchanged':
                     #     continue
@@ -87,5 +89,6 @@ def run_step3_descriptions(data_directory:str):
                         , 'text': r['rule_text_full']
                     }
                     writer.writerow(rule_out)
-# if __name__ == "__main__":
-#     step_3()
+if __name__ == "__main__":
+    data_directory = 'c:/Users/nammy/Desktop/reddit-rule-change/output_data/seth'
+    run_step3_descriptions(data_directory)
