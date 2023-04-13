@@ -17,6 +17,9 @@ from pprint import pprint
 rules_df = pd.read_csv("output_data/seth/step3_description_data.csv")
 violations_df = pd.read_csv("output_data/seth/step3_violation_data.csv")
 names_df = pd.read_csv("output_data/seth/step3_name_data.csv")
+added_deleted_rules = pd.read_csv('output_data/seth/added_or_deleted_rules_data.csv')
+rules_in_both_snaps = pd.read_csv('output_data/seth/rules_in_both_snaps_data.csv')
+
 
 def generate_metadata(df):
     # returns a data frame with rows corresponding to subreddits and columns
@@ -25,7 +28,6 @@ def generate_metadata(df):
     piv_df = pd.pivot_table(relevant_columns, index=['communityID'], 
                 columns=['change_type'], aggfunc=len, fill_value=0)
     piv_df['changed'] = piv_df.changed / 2 # double counting because when rules are changed we keep both versions
-    piv_df['change_added'] = piv_df.change_added / 2
     return piv_df
 
 def generate_change_percents(metadata):
@@ -54,8 +56,6 @@ name.There were five types of text labels:
 3. **deleted**: Rules that were present in the first snapshot and not the second.
 4. **changed**: Rules that were present at the creation of the subreddit, and then changed
     between the first and second snapshot.
-5. **change-added**: Rules that were added after the creation of the subreddit, and were then changed   
-    between the first and second snapshot.
 
 Additionally, each rule had a short name (the name displayed on the subreddit's main page) and 
 a violation reason (which moderators use to flag posts that violate the rules). Similar text 
@@ -82,8 +82,7 @@ and <% int(quartiles[0.75]) %> rules.
 # Get data
 data = np.array(rules_df["change_type"])
 labels, counts = np.unique(data, return_counts=True)
-counts[1] = counts[1]/2 # changed and change_added are double counted, so divide
-counts[2] = counts[2]/2 # changed and change_added are double counted, so divide
+counts[1] = counts[1]/2 # changed are double counted, so divide
 
 # Create histogram
 plt.bar(labels, counts, log=True, align='center')
@@ -92,50 +91,163 @@ plt.gca().set_xticks(labels)
 # Set axis labels and title
 plt.xlabel("Change Type")
 plt.ylabel("Frequency")
-plt.title("How Rules Changed Between Snaps")
+plt.title("How Rule Descriptions Changed Between Snaps")
 
 # Display plot
 plt.show()
 ```
 **Figure 1** is a histogram that summarizes the change types of all the rules we processed between
 the two snapshots. The vast majority of rules were unchanged between the snapshots. Out of the rules that
-had activity, addition was by far the most frequent type of rule activity, followed by addition.
+had activity, addition was by far the most frequent type of rule activity, followed by deletion.
 Actual change of the rule description is the rarest type of rule activity. **Figure 1** indicates that
 the overall corpus of subreddit rules is increasing over time. 
 
 ## Difference in Changes Between Text Fields
 
+
 ```python, echo = False
-rule_percents = generate_change_percents(rules_metadata)
-violation_percents = generate_change_percents(violations_metadata)
-name_percents = generate_change_percents(names_metadata)
+total_added = (added_deleted_rules == 'added').sum()
+total_deleted = (added_deleted_rules == 'deleted').sum()
+total_present = (added_deleted_rules != 'never_present').sum()
+```
+In **Table 1**, we can compare the number of non-default rule descriptions and violation reasons
+that were present in rules that were either added or deleted between the two snapshots. Rules in Reddit 
+have to be initialized with a rule name, but they can leave their violation reasons and rule descriptions
+blank, or just make them the same as the rule name. For example, the first row of the table shows that 
+<%  total_added['name_change_type'] %> rules were added after the first snapshot, but only 
+<%  total_added['description_change_type'] %> of those rules had non-default descriptions.
+
+### Table 1: Added and Deleted Rules 
+
+<style>
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  th, td {
+    text-align: center;
+    padding: 8px;
+    border: 1px solid #000;
+  }
+</style>
+<table>
+  <tr>
+    <th>Change Type</th>
+    <th>Rule Name</th>
+    <th>Rule Description</th>
+    <th>Violation Reason</th>
+    <th>Total</th>
+  </tr>
+  <tr>
+    <td><strong>added</strong></td>
+    <td><% total_added['name_change_type'] %></td>
+    <td><% total_added['description_change_type'] %></td>
+    <td><% total_added['violation_change_type'] %></td>
+    <td><% total_added.sum() %></td>
+  </tr>
+  <tr>
+    <td><strong>deleted</strong></td>
+    <td><% total_deleted['name_change_type'] %></td>
+    <td><% total_deleted['description_change_type'] %></td>
+    <td><% total_deleted['violation_change_type'] %></td>
+    <td><% total_deleted.sum() %></td>
+  </tr>
+  <tr>
+    <td><strong>total</strong></td>
+    <td><% total_present['name_change_type'] %></td>
+    <td><% total_present['description_change_type'] %></td>
+    <td><% total_present['violation_change_type'] %></td>
+    <td></td>
+  </tr>
+</table>
+
+
+From the table, we can see that 
+<% round(total_added['description_change_type'] / total_added['name_change_type'] * 100, 2) %>%
+of added rules had non-default descriptions, and
+<% round(total_added['violation_change_type'] / total_added['name_change_type'] * 100, 2) %>%
+of them had non-default violation reasons. 
+On the other hand, only
+<% int(total_deleted['violation_change_type'] / total_deleted['name_change_type'] * 100) %>%
+of the deleted rules had violation reasons.
+
+```python, echo = False
+total_unchanged = (rules_in_both_snaps == 'unchanged').sum()
+total_added = (rules_in_both_snaps == 'added').sum()
+total_deleted = (rules_in_both_snaps == 'deleted').sum()
+total_changed = (rules_in_both_snaps == 'changed').sum()
+total_present = (rules_in_both_snaps != 'never_present').sum()
 ```
 
-In the table below, we can compare the percentage of different change types between rule names,
-rule descriptions, and rule violation reasons. Each row contains the average percentage of the 
-change type that was applied to the text field in each sub. For example, the first entry in the
-table, corresponding to the column **Rule Name** and the row **unchanged**, says that on average,
-each sub left <% name_percents.unchanged %>% of its rule names unchanged. 
+**Table 2** allows us to examine how different text fields change for rules that are present 
+in both snapshots. 
+<% round(total_unchanged['description_change_type']/total_present['name_change_type'] * 100, 2) %>%
+of these rules were initialized with non-default rule descriptions. Rule descriptions were
+never deleted, but
+<% round(total_added['description_change_type']/total_present['description_change_type'] * 100, 2) %>%
+were added and 
+<% round(total_changed['description_change_type']/total_present['description_change_type'] * 100, 2) %>%
+were changed. Rule names changed the least often. Violation text saw the most churn, with
+<% round(total_added['violation_change_type']/total_present['violation_change_type'] * 100, 2) %>%
+ added, 
+ <% round(total_deleted['violation_change_type']/total_present['violation_change_type'] * 100, 2) %>%
+ deleted and 
+<% round(total_changed['violation_change_type']/total_present['violation_change_type'] * 100, 2) %>%
+changed.  
 
-### Average Rule Changes for Each Text Field 
+### Table 2: Rules That Were Present in Both Snapshots 
 
-| Change Type &nbsp;&nbsp;&nbsp;&nbsp;| Rule Name &nbsp;&nbsp;&nbsp;&nbsp;| Rule Description &nbsp;&nbsp;&nbsp;&nbsp;| Violation Reason &nbsp;&nbsp;|
-| -- | :--: | :--: | :--: |
-| **unchanged** | <% name_percents.unchanged %>% | <% rule_percents.unchanged %>% | <% violation_percents.unchanged %>% |
-| **added** | <% name_percents.added %>% | <% rule_percents.added %>% | <% violation_percents.added %>% |
-| **deleted** | <% name_percents.deleted %>% | <% rule_percents.deleted %>% | <% violation_percents.deleted %>% |
-| **changed** | <% name_percents.changed %>% | <% rule_percents.changed %>% | <% violation_percents.changed %>% |
-| **change-added** | <% name_percents.change_added %>% | <% rule_percents.change_added %>% | <% violation_percents.change_added %>% |
+<table>
+  <tr>
+    <th>Change Type</th>
+    <th>Rule Name</th>
+    <th>Rule Description</th>
+    <th>Violation Reason</th>
+    <th>Total</th>
+  </tr>
+  <tr>
+    <td><strong>unchanged</strong></td>
+    <td><% total_unchanged['name_change_type'] %></td>
+    <td><% total_unchanged['description_change_type'] %></td>
+    <td><% total_unchanged['violation_change_type'] %></td>
+    <td><% total_unchanged.sum() %></td>
+  </tr>
+  <tr>
+    <td><strong>added</strong></td>
+    <td><% total_added['name_change_type'] %></td>
+    <td><% total_added['description_change_type'] %></td>
+    <td><% total_added['violation_change_type'] %></td>
+    <td><% total_added.sum() %></td>
+  </tr>
+  <tr>
+    <td><strong>deleted</strong></td>
+    <td><% total_deleted['name_change_type'] %></td>
+    <td><% total_deleted['description_change_type'] %></td>
+    <td><% total_deleted['violation_change_type'] %></td>
+    <td><% total_deleted.sum() %></td>
+  </tr>
+  <tr>
+    <td><strong>changed</strong></td>
+    <td><% total_changed['name_change_type'] %></td>
+    <td><% total_changed['description_change_type'] %></td>
+    <td><% total_changed['violation_change_type'] %></td>
+    <td><% total_changed.sum() %></td>
+  </tr>
+  <tr>
+    <td><strong>total</strong></td>
+    <td><% total_present['name_change_type'] %></td>
+    <td><% total_present['description_change_type'] %></td>
+    <td><% total_present['violation_change_type'] %></td>
+    <td></td>
+  </tr>
+</table>
 
-We can see that the rule descriptions change significantly more often than violation reasons 
-or rule names. Violation reasons are added more often than rule names or rule descriptions and
-are the least likely to be left unchanged, suggesting that there is more churn with violation 
-reasons. 
 
 
 ## Punctuated Equilibrium
 
 ```python, echo=False, caption = "Figure 2", fig = True, width = 400
+
 # get histogram data
 histogram_data = rules_metadata.div(rules_metadata.sum(axis=1), axis=0)
 histogram_data = histogram_data.multiply(100)
@@ -168,7 +280,7 @@ histogram_data = rules_metadata.div(rules_metadata.sum(axis=1), axis=0)
 histogram_data = histogram_data.multiply(100)
 
 # Create histogram
-plt.hist(histogram_data['changed'] + histogram_data['change_added'], bins=10)
+plt.hist(histogram_data['changed'], bins=10)
 
 # Set axis labels and title
 plt.xlabel("Percent of Rules Changed")

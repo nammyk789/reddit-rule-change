@@ -78,6 +78,8 @@ def run_step3_violations(data_directory:str):
                         continue
                     elif p['violation_change'] == 'unchanged' and j > 0:
                         continue
+                    if p['violation_change'] == 'never_present':
+                        continue
                     elif r['violation_change'] == None:
                         continue
                     ### or skip all unchanged rules
