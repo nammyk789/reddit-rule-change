@@ -14,20 +14,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pprint import pprint
 
-rules_df = pd.read_csv("output_data/seth/step3_description_data.csv")
-violations_df = pd.read_csv("output_data/seth/step3_violation_data.csv")
-names_df = pd.read_csv("output_data/seth/step3_name_data.csv")
-added_deleted_rules = pd.read_csv('output_data/seth/added_or_deleted_rules_data.csv')
-rules_in_both_snaps = pd.read_csv('output_data/seth/rules_in_both_snaps_data.csv')
+all_fields = pd.read_csv("output_data/seth/all_fields_data.csv")
 
 
-def generate_metadata(df):
+def generate_metadata(data, target_field):
     # returns a data frame with rows corresponding to subreddits and columns
     # corresponding to change type
-    relevant_columns = df[["communityID", "change_type"]]
+    relevant_columns = data[["communityID", f"{target_field}_change_type"]]
     piv_df = pd.pivot_table(relevant_columns, index=['communityID'], 
-                columns=['change_type'], aggfunc=len, fill_value=0)
-    piv_df['changed'] = piv_df.changed / 2 # double counting because when rules are changed we keep both versions
+                columns=[f"{target_field}_change_type"], aggfunc=len, fill_value=0)
     return piv_df
 
 def generate_change_percents(metadata):
@@ -95,15 +90,15 @@ unchanged, added, deleted, or changed. Below is a description of how those label
 ### Description of the dataset
 
 ```python, echo = False
-rules_metadata = generate_metadata(rules_df)
-violations_metadata = generate_metadata(violations_df)
-names_metadata = generate_metadata(names_df)
+rules_metadata = generate_metadata(all_fields, "description")
+violations_metadata = generate_metadata(all_fields, "violation")
+names_metadata = generate_metadata(all_fields, "name")
 
 rules_per_sub = rules_metadata.sum(axis=1)
 quartiles = rules_per_sub.quantile([0.25, 0.5, 0.75])
 ```
 
-The datasets contain <% len(rules_df) %> subs. The subs have between <% int(rules_per_sub.min()) %>
+The datasets contain <% len(set(all_fields.communityID)) %> subs. The subs have between <% int(rules_per_sub.min()) %>
 to <% int(rules_per_sub.max()) %> rules, with the first and third quartiles being <% int(quartiles[0.25]) %>
 and <% int(quartiles[0.75]) %> rules. 
 
@@ -111,9 +106,8 @@ and <% int(quartiles[0.75]) %> rules.
 
 ```python, echo = False, fig = True, width = 400, caption = "Figure 1"
 # Get data
-data = np.array(rules_df["change_type"])
+data = np.array(all_fields[all_fields.description_change_type != 'never_present']["description_change_type"])
 labels, counts = np.unique(data, return_counts=True)
-counts[1] = counts[1]/2 # changed are double counted, so divide
 
 # Create histogram
 plt.bar(labels, counts, log=True, align='center')
@@ -127,6 +121,7 @@ plt.title("How Rule Descriptions Changed Between Snaps")
 # Display plot
 plt.show()
 ```
+
 **Figure 1** is a histogram that summarizes the change types of all the rules we processed between
 the two snapshots. The vast majority of rules were unchanged between the snapshots. Out of the rules that
 had activity, addition was by far the most frequent type of rule activity, followed by deletion.
@@ -137,6 +132,8 @@ the overall corpus of subreddit rules is increasing over time.
 
 
 ```python, echo = False
+added_deleted_rules = all_fields[(all_fields.name_change_type == 'added') 
+                        | (all_fields.name_change_type == 'deleted')]
 total_added = (added_deleted_rules == 'added').sum()
 total_deleted = (added_deleted_rules == 'deleted').sum()
 total_present = (added_deleted_rules != 'never_present').sum()
@@ -202,7 +199,10 @@ On the other hand, only
 <% int(total_deleted['violation_change_type'] / total_deleted['name_change_type'] * 100) %>%
 of the deleted rules had violation reasons.
 
+
 ```python, echo = False
+rules_in_both_snaps = all_fields[(all_fields.name_change_type != 'added') 
+                        & (all_fields.name_change_type != 'deleted')]
 total_unchanged = (rules_in_both_snaps == 'unchanged').sum()
 total_added = (rules_in_both_snaps == 'added').sum()
 total_deleted = (rules_in_both_snaps == 'deleted').sum()
@@ -272,7 +272,6 @@ changed.
     <td></td>
   </tr>
 </table>
-
 
 
 ## Punctuated Equilibrium

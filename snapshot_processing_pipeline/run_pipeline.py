@@ -5,6 +5,7 @@ from step2_filter_rules import *
 from step3_produce_name_data import *
 from step3_produce_description_data import *
 from step3_produce_violation_data import *
+from step3_all_fields_data import *
 
 
 def run_seth_data():
@@ -37,9 +38,10 @@ def run_mako_data():
 
 
 def run_step3(data_directory):
-    run_step3_descriptions(data_directory)
-    run_step3_names(data_directory)
-    run_step3_violations(data_directory)
+    # run_step3_descriptions(data_directory)
+    # run_step3_names(data_directory)
+    # run_step3_violations(data_directory)
+    get_all_fields_data(data_directory)
 
 
 if __name__ == '__main__':
