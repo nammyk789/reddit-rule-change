@@ -48,18 +48,49 @@ that had fewer than three subscribers in both scrapes, zero rules in both scrape
 founded within a month of the first scrape were filtered out. With the remaining
 subs, we tracked how rules changed between the two snapshots. We identified rules that
 were the same if they had the same creation timestamp and description, or the same rule 
-name.There were five types of text labels:
+name.
 
-1. **unchanged**: Rules that had fewer than 10 characters change between snapshots, or rules
-    that were present at the subreddit's creation and were present in the second snapshot.
-2. **added**: Rules that was added after the subreddit's creation or after the first snapshot.
+### Categorization of Rule Change
+Each rule had a short name (the name displayed on the subreddit's main page) and 
+a violation reason (which moderators use to flag posts that violate the rules). Rules have 
+to be initialized with a rule name, but can leave the violation reason and description field
+blank, or simply copy the rule name into those fields. Violation reasons and descriptions 
+that were blank or identical to the rule name were considered missing, since those are 
+default values.
+
+Text analysis was done on the version of the rule in the first snapshot and the second snapshot to determine 
+how rules in each subreddit changed between snapshots. Each field could be assigned four labels:
+unchanged, added, deleted, or changed. Below is a description of how those labels were assigned.
+
+#### Rule Names
+1. **unchanged**: Rules that were present in both snapshots, where the Levenshtein distance of the 
+                  rule name between snapshots was less than 5.
+2. **added**: Rules that were present in the second snapshot and not the first.
 3. **deleted**: Rules that were present in the first snapshot and not the second.
-4. **changed**: Rules that were present at the creation of the subreddit, and then changed
-    between the first and second snapshot.
+4. **changed**: Rules that were present in both snapshots, where the Levenshtein distance of the 
+               rule name between snapshots was greater than 5.
 
-Additionally, each rule had a short name (the name displayed on the subreddit's main page) and 
-a violation reason (which moderators use to flag posts that violate the rules). Similar text 
-analysis was done on the short names and the violation reasons of each rule.
+#### Rule Descriptions
+1. **unchanged**: Rules that had non-default descriptions present in both snapshots, where the Levenshtein distance of the 
+                  rule description between snapshots was less than 10.
+2. **added**: Rules that only had non-default descriptions present in the second snapshot (either because the rule itself
+              was added after the first snapshot, or because a description wasn't added until after the first snapshot).
+3. **deleted**: Rules that only had non-default descriptions present in the first snapshot (either because the rule itself
+              was deleted after the first snapshot, or because the description was removed after the first snapshot).
+4. **changed**: Rules that had non-default descriptions present in both snapshots, where the Levenshtein distance of the 
+                rule description between snapshots was greater than 10.
+
+#### Rule Violation Reasons
+1. **unchanged**: Rules that had non-default violation reasons present in both snapshots, where the Levenshtein distance of the 
+                  violation reason between snapshots was less than 5.
+2. **added**: Rules that only had non-default violation reasons present in the second snapshot (either because the rule itself
+              was added after the first snapshot, or because a violation reason wasn't added until after the first snapshot).
+3. **deleted**: Rules that only had non-default violation reasons present in the first snapshot (either because the rule itself
+              was deleted after the first snapshot, or because the violation reason was removed after the first snapshot).
+4. **changed**: Rules that had non-default violation reasons present in both snapshots, where the Levenshtein distance of the 
+                violation reason between snapshots was greater than 5.
+
+
 
 ### Description of the dataset
 
