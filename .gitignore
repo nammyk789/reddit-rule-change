@@ -2,6 +2,7 @@ original_data/*
 output_data/*
 myenv/*
 figures/*
+snapshot_processing_pipeline/__pycache__/*
 *.csv
 *.json
 "meeting notes.txt"
