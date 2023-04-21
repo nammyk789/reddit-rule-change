@@ -22,6 +22,12 @@ def run_seth_data():
     print('STEP 3')
     run_step3(data_directory)
 
+    # get age in months of each sub for metadata
+    sub_metadata = pd.read_csv(f'{data_directory}/sub_metadata.csv')
+    sub_metadata['age_in_months'] = \
+        (pd.to_datetime('2021-04-23') - pd.to_datetime(sub_metadata['founding_date'] * 10**9))/ np.timedelta64(1, 'M')
+
+
 
 def run_mako_data():
     input_data = 'c:/Users/nammy/Desktop/reddit-rule-change/original_data/subreddit_data_export-20230206.jsonl.xz'
@@ -42,6 +48,7 @@ def run_step3(data_directory):
     # run_step3_names(data_directory)
     # run_step3_violations(data_directory)
     get_all_fields_data(data_directory)
+
 
 
 if __name__ == '__main__':

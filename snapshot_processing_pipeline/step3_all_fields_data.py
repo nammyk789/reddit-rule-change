@@ -4,8 +4,6 @@ take processed and labeled rule deltas and print them out in the form of a mostl
 import pandas as pd
 import json
 import csv
-from pprint import pprint
-from datetime import datetime
 
 def get_all_fields_data(data_directory:str):
     header = ('name_change_type', 'description_change_type', 'violation_change_type', 
@@ -39,6 +37,15 @@ def get_all_fields_data(data_directory:str):
     delta = pd.to_datetime(rules.date_observed) - pd.to_datetime(rules.timestamp_rule)
     rules['rule_age_in_days'] = delta.dt.days
     rules.to_csv(f'{data_directory}/all_fields_data.csv', index=False)
+
+    # update sub metadata
+    agg_data = pd.DataFrame(rules[['communityID', 'name_change_type']].groupby(['communityID', 'name_change_type']).agg(len)).reset_index()
+    agg_data = agg_data.pivot(index='communityID', columns='name_change_type', values=0).fillna(0).reset_index()
+    sub_metadata = pd.read_csv(f'{data_directory}/sub_metadata.csv')
+    sub_metadata = agg_data.set_index('communityID').join(sub_metadata.set_index('communityID'), on=['communityID'])
+    sub_metadata = sub_metadata.reset_index()
+    sub_metadata.to_csv(f'{data_directory}/sub_metadata.csv')
+
 
 if __name__ == "__main__":
     data_directory = 'c:/Users/nammy/Desktop/reddit-rule-change/output_data/seth'
