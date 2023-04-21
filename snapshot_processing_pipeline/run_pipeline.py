@@ -26,6 +26,7 @@ def run_seth_data():
     sub_metadata = pd.read_csv(f'{data_directory}/sub_metadata.csv')
     sub_metadata['age_in_months'] = \
         (pd.to_datetime('2021-04-23') - pd.to_datetime(sub_metadata['founding_date'] * 10**9))/ np.timedelta64(1, 'M')
+    sub_metadata = pd.to_csv(f'{data_directory}/sub_metadata.csv', index=False)
 
 
 

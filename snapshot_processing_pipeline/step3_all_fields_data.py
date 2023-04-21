@@ -44,7 +44,7 @@ def get_all_fields_data(data_directory:str):
     sub_metadata = pd.read_csv(f'{data_directory}/sub_metadata.csv')
     sub_metadata = agg_data.set_index('communityID').join(sub_metadata.set_index('communityID'), on=['communityID'])
     sub_metadata = sub_metadata.reset_index()
-    sub_metadata.to_csv(f'{data_directory}/sub_metadata.csv')
+    sub_metadata.to_csv(f'{data_directory}/sub_metadata.csv', index=False)
 
 
 if __name__ == "__main__":
