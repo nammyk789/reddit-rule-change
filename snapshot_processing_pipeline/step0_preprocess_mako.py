@@ -5,7 +5,7 @@ from collections import OrderedDict, Counter
 from datetime import datetime
 import csv
 
-max_count = 1 * 10**2  # for testing on subsets
+max_count = 1 * 10**5  # for testing on subsets
 sub_count = 0
 sub_rule_versions = {}
 sub_rule_names = {}
@@ -143,9 +143,9 @@ def run_step0_mako(input_file, output_directory):
                 elif (int(sub['meta_earliest']['data']['created_utc']) -    # or the sub was less than a month old
                     (datetime.strptime(sub['collection_metadata']['rules_earliest']['timestamp'], 
                                         '%Y-%m-%d %H:%M:%S')).timestamp()) < 60*60*24*30:  
-                    continue                                                # we don't care about it
+                    continue                                                # we don't care about it 
                 else:
-                    sub_counter[subname] += 1
+                    sub_counter[subname] += 1 # NOTE: no sub gets this far...
             else:
                 continue
 
@@ -230,7 +230,7 @@ def run_step0_mako(input_file, output_directory):
 
     header = ('communityID', 'subscribers_1', 'subscribers_2', 'founding_date', 'earliest_scrape_date',
             'latest_scrape_date', 'num_rules_earliest', 'num_rules_latest')
-    with open(f'{output_directory}/metadata.csv', 'w', encoding='utf-8') as outfile:
+    with open(f'{output_directory}/sub_metadata.csv', 'w', encoding='utf-8') as outfile:
         writer = csv.DictWriter(outfile, fieldnames=header)
         writer.writeheader()
         for sub in sub_metadata:

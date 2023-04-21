@@ -5,12 +5,11 @@ import pandas as pd
 import json
 import csv
 from pprint import pprint
-import nltk
 from datetime import datetime
 
 def get_all_fields_data(data_directory:str):
-    header = ('source', 'name_change_type', 'description_change_type', 'violation_change_type', 
-        'timestamp', 'timestamp_rule', 'communityID', 'ref', 'ruleID')
+    header = ('name_change_type', 'description_change_type', 'violation_change_type', 
+        'date_observed', 'timestamp_rule', 'communityID', 'ref', 'ruleID')
     with open(f'{data_directory}/step2_rules_processed.json', 'r', encoding='utf-8') as rules_file, open(f'{data_directory}/all_fields_data.csv','w', encoding='utf-8') as outfile:
         subs_all = json.load( rules_file )
         writer = csv.DictWriter(outfile, fieldnames=header)
@@ -24,18 +23,22 @@ def get_all_fields_data(data_directory:str):
                         continue
 
                     rule_out = {
-                          'source' : r['source']
-                        , 'name_change_type' : p['name_change']
+                        'name_change_type' : p['name_change']
                         , 'description_change_type' : p['rule_change']
                         , 'violation_change_type' : p['violation_change']
-                        , 'timestamp' : r['date_observed']
-                        , 'timestamp_rule' : r['created_utc_date'].replace('-', '') + '01'
+                        , 'date_observed' : r['date_observed']
+                        , 'timestamp_rule' : r['created_utc_date'] + '-01'
                         , 'communityID' : subname
                         , 'ref' : 'https://www.reddit.com/r/{}/'.format( subname )
                         , 'ruleID': r['rule_ID'] 
                     }
                     writer.writerow(rule_out)
-
+    
+    # add age in days of rule
+    rules = pd.read_csv(f'{data_directory}/all_fields_data.csv')
+    delta = pd.to_datetime(rules.date_observed) - pd.to_datetime(rules.timestamp_rule)
+    rules['rule_age_in_days'] = delta.dt.days
+    rules.to_csv(f'{data_directory}/all_fields_data.csv', index=False)
 
 if __name__ == "__main__":
     data_directory = 'c:/Users/nammy/Desktop/reddit-rule-change/output_data/seth'

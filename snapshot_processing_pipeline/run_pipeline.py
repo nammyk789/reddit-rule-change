@@ -47,5 +47,5 @@ def run_step3(data_directory):
 if __name__ == '__main__':
     print('RUNNING SETH DATA')
     run_seth_data()
-    print('RUNNING MAKO DATA')
-    run_mako_data()
+    # print('RUNNING MAKO DATA')
+    # run_mako_data()

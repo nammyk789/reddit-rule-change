@@ -68,7 +68,7 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
                 drop_subs.append(subname)
                 continue
 
-            if sub['created_utc'] <= one_month_before_first_scrape: # drop if sub is too young
+            if sub['created_utc'] >= one_month_before_first_scrape: # drop if sub is too young
                 drop_subs.append(subname)
                 continue
             else:
@@ -280,3 +280,10 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
 
 
     print(f"errors: {errors}")
+
+
+if __name__ == '__main__':
+    scrape_1_path = 'c:/Users/nammy/Desktop/reddit-rule-change/original_data/full_reddit_metadata_apr_23.jsonl'
+    scrape_2_path = 'c:/Users/nammy/Desktop/reddit-rule-change/original_data/full_subreddit_metadata_dec_10.jsonl'
+    data_directory = 'c:/Users/nammy/Desktop/reddit-rule-change/output_data/seth'
+    run_step0_seth(scrape_1_path, scrape_2_path, data_directory)
