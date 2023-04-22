@@ -212,12 +212,14 @@ def run_step1(data_directory:str):
                         description_distance = 0 if versions[0]['description'] == versions[1]['description'] else 10
                         short_name_distance = 0 if versions[0]['short_name'] == versions[1]['short_name'] else 10
                         violation_reason_distance = 0 if versions[0]['violation_reason'] == versions[1]['violation_reason'] else 10
-                else:
-                    assert( len(versions) == 1 )
+                elif len(versions) == 1:
                     description_distance = float("Inf")
                     description_difference = float("Inf")
                     short_name_distance = float("Inf")
                     violation_reason_distance = float("Inf")
+                else:
+                    print(f'{subname} had a rule with more than two versions')
+                    drop_subs.append(subname)
                 description_distances.append( description_distance )
                 short_name_distances.append( short_name_distance )
                 violation_reason_distances.append( violation_reason_distance )

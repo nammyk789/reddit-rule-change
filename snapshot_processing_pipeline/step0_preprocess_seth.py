@@ -25,8 +25,7 @@ def standardizeRule(source:str, sub:dict, r:dict, scrape_line:int, date_observed
 
 def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
     count = 0  # these two values are for testing on subsets
-    max_count = 100000  # these two values are for testing on subsets
-    sub_count = 0
+    max_count = 10000  # these two values are for testing on subsets
     subs_1 = [] # subs from the first file
     subs_2 = [] # subs from the second file
     sub_rule_versions = {}
@@ -35,7 +34,7 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
     sub_timestamps = {}
     sub_metadata = {}
     global sub_counter
-    drop_subs = []
+    drop_subs = Counter()
 
     existing_rule_count = 0
     refurb_rule_count = 0
@@ -64,12 +63,13 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
                 sub_metadata[subname]['subscribers_1'] = int(sub['subscribers'])
                 sub_metadata[subname]['rules_1'] = len(sub['rules_widget'])
                 sub_metadata[subname]['founding_date'] = sub['created_utc']
+                sub_metadata[subname]['timestamp_1'] = sub['timestamp']
             except: # if any of those fields are missing, drop the sub
-                drop_subs.append(subname)
+                drop_subs[subname] += 1
                 continue
 
             if sub['created_utc'] >= one_month_before_first_scrape: # drop if sub is too young
-                drop_subs.append(subname)
+                drop_subs[subname] += 1
                 continue
             else:
                 subs_1.append(subname)
@@ -135,10 +135,9 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
                         new_rule_count += 1
                     sub_descriptions[subname].append( r['description'] )
                 sub_rule_versions[subname][ effective_rname ].append( r )
-            sub_count += 1
             # if count > max_count:
             #     break
-            count += 1
+            # count += 1
 
     count = 0
     print("processing second scrape")
@@ -150,26 +149,27 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
                 errors += 1
                 continue
             subname = sub['sub_name'].lower()
-            if sub_counter[subname] != 1 or subname in drop_subs:
+            if sub_counter[subname] != 1 or drop_subs[subname] > 0:
                 continue # we only want subs that are in both snapshots, and we want to skip duplicates
             
             # get metadata
             try:
                 sub_metadata[subname]['subscribers_2'] = int(sub['subscribers'])
                 sub_metadata[subname]['rules_2'] = len(sub['rules_widget'])
+                sub_metadata[subname]['timestamp_2'] = sub['timestamp']
                 subs_2.append(subname)
                 sub_counter[subname] += 1
             except:
-                drop_subs.append(subname)
+                drop_subs[subname] += 1
                 continue
 
             # drop subs that have too few subscribers
             if sub_metadata[subname]['subscribers_1'] < 3 and sub_metadata[subname]['subscribers_2'] < 3:
-                drop_subs.append(subname)
+                drop_subs[subname] += 1
                 continue
             # drop subs that have no rules in both scrapes
             elif sub_metadata[subname]['rules_1'] < 1 and sub_metadata[subname]['rules_2'] < 1:
-                drop_subs.append(subname)
+                drop_subs[subname] += 1
                 continue
 
             if subname not in sub_rule_versions:
@@ -178,7 +178,6 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
                 sub_rule_names[subname] = []
                 sub_descriptions[subname] = []
                 sub_timestamps[subname] = []
-                sub_count += 1
             for r in sub['rules_widget']:
                 r = standardizeRule('latest', sub, r, i, '2021-12-10 00:00:00')
             
@@ -210,7 +209,7 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
                         try:
                             candidate_rule_name = sub_rule_names[subname][ sub_timestamps[subname].index(r['created_utc']) ]
                         except:
-                            drop_subs.append(subname)
+                            drop_subs[subname] += 1
                             continue
                         candidate_rule = sub_rule_versions[subname][candidate_rule_name]
                         cand_datalines = [ v['scrape_line'] for v in candidate_rule] # which lines in file do they come from
@@ -235,25 +234,16 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
                         new_rule_count += 1
                     sub_descriptions[subname].append( r['description'] )
                 sub_rule_versions[subname][ effective_rname ].append( r )
-            sub_count += 1
-            # if count > max_count:
+            # if count > int(max_count/2):
             #     break
-            count += 1
+            # count += 1
+
     print('Finished processing scrapes')
 
     # remove subs that are not in both snapshots and subs that weren't processed properly
-    intersection = list(set(subs_1) & set(subs_2)) # subs that are in both snapshots
-    not_in_both = [sub for sub in set(subs_1) if sub not in set(subs_2)]
-    not_in_both.extend([sub for sub in set(subs_2) if sub not in set(subs_1)])
-    drop_subs.extend(not_in_both)
-
-    for sub in set(drop_subs):
-        if sub in sub_rule_versions:
-            sub_rule_versions.pop(sub)
-
     subs_scraped = set(sub_rule_versions.keys())
     for sub in subs_scraped:
-        if sub_counter[sub] != 2 or sub in drop_subs:
+        if sub_counter[sub] != 2 or drop_subs[sub] > 0:
             sub_rule_versions.pop(sub)
 
 
@@ -261,12 +251,13 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
         json.dump(sub_rule_versions, outfile)
     print( 'SCRIPT end' )
 
-    header = ('communityID', 'subscribers_1', 'subscribers_2', 'rules_1', 'rules_2', 'founding_date')
+    header = ('communityID', 'subscribers_1', 'subscribers_2', 'rules_1', 'rules_2', 
+              'timestamp_1', 'timestamp_2', 'founding_date')
     with open(f'{output_directory}/sub_metadata.csv', 'w', encoding='utf-8') as outfile:
         writer = csv.DictWriter(outfile, fieldnames=header)
         writer.writeheader()
         for sub in sub_metadata:
-            if sub_counter[sub] == 2 and sub not in drop_subs:
+            if sub_counter[sub] == 2 and drop_subs[sub] == 0:
                 sub_data = sub_metadata[sub]
                 data_out = {
                                 'communityID' : sub
@@ -274,6 +265,8 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
                                 , 'subscribers_2' : sub_data['subscribers_2']
                                 , 'rules_1' : sub_data['rules_1']
                                 , 'rules_2' : sub_data['rules_2']
+                                , 'timestamp_1' : sub_data['timestamp_1']
+                                , 'timestamp_2' : sub_data['timestamp_2']
                                 , 'founding_date' : sub_data['founding_date']
                             }
                 writer.writerow(data_out)

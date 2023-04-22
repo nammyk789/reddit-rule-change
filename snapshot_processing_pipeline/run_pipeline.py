@@ -2,9 +2,9 @@ from step0_preprocess_seth import *
 from step0_preprocess_mako import *
 from step1_clean import *
 from step2_filter_rules import *
-from step3_produce_name_data import *
-from step3_produce_description_data import *
-from step3_produce_violation_data import *
+# from step3_produce_name_data import *
+# from step3_produce_description_data import *
+# from step3_produce_violation_data import *
 from step3_all_fields_data import *
 
 
@@ -14,7 +14,7 @@ def run_seth_data():
     data_directory = 'c:/Users/nammy/Desktop/reddit-rule-change/output_data/seth'
 
     print('STEP 0')
-    run_step0_seth(scrape_1_path, scrape_2_path, data_directory)
+    # run_step0_seth(scrape_1_path, scrape_2_path, data_directory)
     print('STEP 1')
     run_step1(data_directory)
     print('STEP 2')
