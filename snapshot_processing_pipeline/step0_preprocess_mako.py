@@ -230,7 +230,7 @@ def run_step0_mako(input_file, output_directory):
 
     header = ('communityID', 'subscribers_1', 'subscribers_2', 'founding_date', 'earliest_scrape_date',
             'latest_scrape_date', 'num_rules_earliest', 'num_rules_latest')
-    with open(f'{output_directory}/sub_metadata.csv', 'w', encoding='utf-8') as outfile:
+    with open(f'{output_directory}/sub_metadata_step_0.csv', 'w', encoding='utf-8') as outfile:
         writer = csv.DictWriter(outfile, fieldnames=header)
         writer.writeheader()
         for sub in sub_metadata:

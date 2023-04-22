@@ -71,7 +71,7 @@ def run_step2(data_directory:str):
             sub_count += 1
             metadata = metadata_all[ subname ]
             metadata['rule_properties'] = []
-            # did the description in the rule every change?
+            # did the description in the rule ever change?
             for i, (rname, versions) in enumerate(rules.items()): # is rules.items() actually iterable?
                 ### BUILD
                 ### easily testable rule properties
@@ -205,6 +205,8 @@ def run_step2(data_directory:str):
                         or p['name_unchanged']
                     )
                 ):
+                    if p['rule_change'] == 'deleted':
+                        pass
                     p['name_change'] = 'unchanged'
                     for v in versions:
                         v['name_change'] = 'unchanged'
@@ -351,7 +353,7 @@ def run_step2(data_directory:str):
         metadata_all[ subname ]['rules'] = rules
 
     with open(f'{data_directory}/step2_rules_processed.json', 'w') as outfile:
-        print( len( metadata_all ) )
+        print( 'outputting metadata' )
         json.dump(metadata_all, outfile)
 
 if __name__ == '__main__':

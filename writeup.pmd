@@ -14,7 +14,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pprint import pprint
 
-all_fields = pd.read_csv("output_data/seth/all_fields_data.csv")
+rules = pd.read_csv("output_data/seth/rule_level_data.csv")
+sub_metadata = pd.read_csv("output_data/seth/sub_level_data.csv")
 
 
 def generate_metadata(data, target_field):
@@ -24,17 +25,6 @@ def generate_metadata(data, target_field):
     piv_df = pd.pivot_table(relevant_columns, index=['communityID'], 
                 columns=[f"{target_field}_change_type"], aggfunc=len, fill_value=0)
     return piv_df
-
-def generate_change_percents(metadata):
-    # return avg percent of rules for each change type
-    # based on the output of generate_metadata()
-    metadata = metadata.div(metadata.sum(axis=1), axis=0)
-    metadata = metadata.multiply(100)
-    metadata = metadata.mean()
-    metadata = metadata.round(2)
-    # metadata = metadata.astype(int)
-    return metadata
-
 ```
 ## Data
 All of the figures generated in this plot uses data taken from two snapshots of Reddit: 
@@ -90,23 +80,26 @@ unchanged, added, deleted, or changed. Below is a description of how those label
 ### Description of the dataset
 
 ```python, echo = False
-rules_metadata = generate_metadata(all_fields[all_fields.description_change_type != 'never_present'], "description")
-violations_metadata = generate_metadata(all_fields[all_fields.violation_change_type != 'never_present'], "violation")
-names_metadata = generate_metadata(all_fields, "name")
+rules_metadata = generate_metadata(rules[rules.description_change_type != 'never_present'], "description")
+violations_metadata = generate_metadata(rules[rules.violation_change_type != 'never_present'], "violation")
+names_metadata = generate_metadata(rules, "name")
 
 rules_per_sub = names_metadata.sum(axis=1)
-quartiles = rules_per_sub.quantile([0.25, 0.5, 0.75])
+rule_num_quartiles = sub_metadata.rules_1.quantile([0.25, 0.5, 0.75])
+age_quartiles = sub_metadata.age_in_months.quantile([0.25, 0.5, 0.75])
 ```
 
-The datasets contain <% len(set(all_fields.communityID)) %> subs. The subs have between <% int(rules_per_sub.min()) %>
-to <% int(rules_per_sub.max()) %> rules, with the first and third quartiles being <% int(quartiles[0.25]) %>
-and <% int(quartiles[0.75]) %> rules. 
+The datasets contain <% len(sub_metadata) %> subs. The subs have between <% int(sub_metadata.rules_1.min()) %>
+to <% int(sub_metadata.rules_1.max()) %> rules, with the first and third quartiles being <% int(rule_num_quartiles[0.25]) %>
+and <% int(rule_num_quartiles[0.75]) %> rules. The subs are between <% int(sub_metadata.age_in_months.min()) %>
+to <% int(sub_metadata.age_in_months.max()) %> months old, with the first and third quartiles being 
+<% int(age_quartiles[0.25]) %> and <% int(age_quartiles[0.75]) %> months old.
 
 ## Growth in Rules Corpus
 
 ```python, echo = False, fig = True, width = 400, caption = "Figure 1"
 # Get data
-data = np.array(all_fields[all_fields.description_change_type != 'never_present']["description_change_type"])
+data = np.array(rules[rules.description_change_type != 'never_present']["description_change_type"])
 labels, counts = np.unique(data, return_counts=True)
 
 # Create histogram
@@ -132,8 +125,8 @@ the overall corpus of subreddit rules is increasing over time.
 
 
 ```python, echo = False
-added_deleted_rules = all_fields[(all_fields.name_change_type == 'added') 
-                        | (all_fields.name_change_type == 'deleted')]
+added_deleted_rules = rules[(rules.name_change_type == 'added') 
+                        | (rules.name_change_type == 'deleted')]
 total_added = (added_deleted_rules == 'added').sum()
 total_deleted = (added_deleted_rules == 'deleted').sum()
 total_present = (added_deleted_rules != 'never_present').sum()
@@ -182,7 +175,6 @@ blank, or just make them the same as the rule name. For example, the first row o
     <td><% total_present['name_change_type'] %></td>
     <td><% total_present['description_change_type'] %></td>
     <td><% total_present['violation_change_type'] %></td>
-    <td></td>
   </tr>
 </table>
 
@@ -192,14 +184,13 @@ From the table, we can see that
 of added rules had non-default descriptions, and
 <% round(total_added['violation_change_type'] / total_added['name_change_type'] * 100, 2) %>%
 of them had non-default violation reasons. 
-On the other hand, only
 <% int(total_deleted['violation_change_type'] / total_deleted['name_change_type'] * 100) %>%
 of the deleted rules had violation reasons.
 
 
 ```python, echo = False
-rules_in_both_snaps = all_fields[(all_fields.name_change_type != 'added') 
-                        & (all_fields.name_change_type != 'deleted')]
+rules_in_both_snaps = rules[(rules.name_change_type != 'added') 
+                        & (rules.name_change_type != 'deleted')]
 total_unchanged = (rules_in_both_snaps == 'unchanged').sum()
 total_added = (rules_in_both_snaps == 'added').sum()
 total_deleted = (rules_in_both_snaps == 'deleted').sum()
@@ -261,11 +252,10 @@ changed.
     <td><% total_present['name_change_type'] %></td>
     <td><% total_present['description_change_type'] %></td>
     <td><% total_present['violation_change_type'] %></td>
-    <td></td>
   </tr>
 </table>
 
-
+# Sub Level Hypothesis Testing
 ## Punctuated Equilibrium
 
 ```python, echo=False, caption = "Figure 2", fig = True, width = 400
@@ -321,3 +311,230 @@ plt.show()
 rules that were added or deleted. <% len(histogram_data[histogram_data['changed'] < 10]) %> 
 subs changed less than 10% of their rule descriptions. The evidence has the caveat that subs with high 
 percentages of rule changes or activity might in reality have a low count of rules, amplifying the perceived turnover. 
+
+```python, echo=False, caption = "Figure 4", fig = True, width = 400
+x = np.array((sub_metadata.added + sub_metadata.deleted + sub_metadata.changed)/sub_metadata.rules_1)
+y = np.array(sub_metadata.rules_1)
+
+# Plot the scatter plot with the calculated area
+plt.scatter(x, y, alpha=0.3)
+
+plt.xlabel("# Rules Turned Over / # Rules in First Snap")
+plt.ylabel("# Rules in First Snap")
+plt.title("Rule Turnover and Size of Rule Corpus")
+
+plt.show()
+```
+
+**Figure 4** is a scatterplot that looks at the relationship between the number of initial rules 
+a sub has and rule turn over (rules that were added, deleted, or changed). 
+
+## Number of Subscribers
+### H: The bigger the sub, the more likely that they will add >=1 rule
+
+```python, echo=False, caption = "Figure 5", fig = True, width = 400
+# Creating dataset
+added = np.array(sub_metadata[sub_metadata.added > 0].subscribers_1)
+not_added = np.array(sub_metadata[sub_metadata.added == 0].subscribers_1)
+data = np.array([added, not_added], dtype=object)
+ 
+fig = plt.figure()
+ 
+# Creating axes instance
+ax = fig.add_axes([0, 0, 1, 1])
+ 
+# Creating plot
+bp = ax.boxplot(data,
+                 notch=True,  # notch shape
+                 vert=False,  # vertical box alignment
+                 patch_artist=True,  # fill with color
+                 labels=['added >= 1 rule', 'did not add rules'])  # will be used to label x-ticks
+plt.xscale("log")
+
+plt.xlabel("# Subscribers")
+plt.title("Subreddit Size and Adding a Rule")
+plt.show()
+```
+
+### H: The bigger the sub, the more likely they will delete >=1 rule
+```python, echo=False, caption = "Figure 8", fig = True, width = 400
+# Creating dataset
+deleted = np.array(sub_metadata[sub_metadata.deleted > 0].subscribers_1)
+not_deleted = np.array(sub_metadata[sub_metadata.deleted == 0].subscribers_1)
+data = np.array([deleted, not_deleted], dtype=object)
+ 
+fig = plt.figure()
+ 
+# Creating axes instance
+ax = fig.add_axes([0, 0, 1, 1])
+ 
+# Creating plot
+bp = ax.boxplot(data,
+                 notch=True, vert=False, patch_artist=True, 
+                 labels=['deleted >= 1 rule', 'did not delete rules'])  # will be used to label x-ticks
+plt.xscale("log")
+
+plt.xlabel("# Subscribers")
+plt.title("Subreddit Size and Deleting a Rule")
+plt.show()
+```
+
+### H: the bigger the sub, the more rules they add
+
+```python, echo=False, caption = "Figure 6", fig = True, width = 400
+y = np.array(sub_metadata.subscribers_1 + 2)
+x = np.array(sub_metadata.added)
+
+# Plot the scatter plot with the calculated area
+plt.scatter(x, y, alpha=0.3)
+plt.yscale("log")
+
+plt.ylabel("# Subscribers")
+plt.xlabel("# Rules Added")
+plt.title("Subreddit Size and Rule Additions")
+
+plt.show()
+```
+
+### H: the bigger the sub, the more rules they delete
+
+```python, echo=False, caption = "Figure 7", fig = True, width = 400
+y = np.array(sub_metadata.subscribers_1 + 2)
+x = np.array(sub_metadata.deleted)
+
+# Plot the scatter plot with the calculated area
+plt.scatter(x, y, alpha=0.3)
+plt.yscale("log")
+
+plt.ylabel("Log # Subscribers")
+plt.xlabel("# Rules Deleted")
+plt.title("Subreddit Size and Rule Deletions")
+
+plt.show()
+```
+
+
+### H: the bigger the sub, the more total changes they will make
+```python, echo=False, caption = "Figure 9", fig = True, width = 400
+#     1 scatterplot x = #subscribers, y = sum(rules changed  + rules deleted)
+y = np.array(sub_metadata.subscribers_1 + 2)
+x = np.array(sub_metadata.deleted + sub_metadata.changed)
+
+# Plot the scatter plot with the calculated area
+plt.scatter(x, y, alpha=0.3)
+plt.yscale("log")
+
+plt.ylabel("Log # Subscribers")
+plt.xlabel("# Rules Changed and Deleted")
+plt.title("Subreddit Size and Rule Change")
+
+plt.show()
+```
+
+
+## Age of Sub 
+### H: the older the sub, the less likely that they will add >= 1 rule
+```python, echo=False, caption = "Figure 10", fig = True, width = 400
+# Creating dataset
+added = np.array(sub_metadata[sub_metadata.added > 0].age_in_months)
+not_added = np.array(sub_metadata[sub_metadata.added == 0].age_in_months)
+data = np.array([added, not_added], dtype=object)
+ 
+fig = plt.figure()
+ 
+# Creating axes instance
+ax = fig.add_axes([0, 0, 1, 1])
+ 
+# Creating plot
+bp = ax.boxplot(data, notch=True, vert=False, patch_artist=True,
+                 labels=['added >= 1 rule', 'did not add rules'])  # will be used to label x-ticks
+
+plt.xlabel("Age in Months")
+plt.title("Subreddit Age and Adding a Rule")
+plt.show()
+```
+
+### H: the older the sub, the less likely that they will delete >= 1 rule
+
+```python, echo=False, caption = "Figure 12", fig = True, width = 400
+# Creating dataset
+deleted = np.array(sub_metadata[sub_metadata.deleted > 0].age_in_months)
+not_deleted = np.array(sub_metadata[sub_metadata.deleted == 0].age_in_months)
+data = np.array([deleted, not_deleted], dtype=object)
+ 
+fig = plt.figure()
+ 
+# Creating axes instance
+ax = fig.add_axes([0, 0, 1, 1])
+ 
+# Creating plot
+bp = ax.boxplot(data, notch=True, vert=False,
+                 patch_artist=True,  # fill with color
+                 labels=['deleted >= 1 rule', 'did not deleted rules'])  # will be used to label x-ticks
+
+plt.xlabel("Age in Months")
+plt.title("Subreddit Age and Deleting a Rule")
+plt.show()
+```
+
+### H: the older the sub, the fewer rules they add
+```python, echo=False, caption = "Figure 11", fig = True, width = 400
+y = np.array(sub_metadata.age_in_months)
+x = np.array(sub_metadata.added)
+
+# Plot the scatter plot with the calculated area
+plt.scatter(x, y, alpha=0.3)
+
+plt.ylabel("Age in Months")
+plt.xlabel("# Rules Added")
+plt.title("Subreddit Age and Rule Additions")
+
+plt.show()
+```
+
+### H: the older the sub, the fewer rules they delete
+
+```python, echo=False, caption = "Figure 13", fig = True, width = 400
+y = np.array(sub_metadata.age_in_months)
+x = np.array(sub_metadata.deleted)
+
+# Plot the scatter plot with the calculated area
+plt.scatter(x, y, alpha=0.3)
+
+plt.ylabel("Age in Months")
+plt.xlabel("# Rules Deleted")
+plt.title("Subreddit Age and Rule Deletions")
+
+plt.show()
+```
+
+### H: the older the sub, the fewer total changes they will make
+```python, echo=False, caption = "Figure 14", fig = True, width = 400
+y = np.array(sub_metadata.age_in_months)
+x = np.array(sub_metadata.deleted + sub_metadata.changed)
+
+# Plot the scatter plot with the calculated area
+plt.scatter(x, y, alpha=0.3)
+
+plt.ylabel("Age in Months")
+plt.xlabel("# Rules Changed or Deleted")
+plt.title("Subreddit Age and Rule Change")
+
+plt.show()
+```
+
+# Rule Level Hypothesis Testing
+### H: the more initial rules the sub has, the more likely they will delete rules
+```python, echo=False, caption = "Figure 15", fig = True, width = 400
+y = np.array(sub_metadata.age_in_months)
+x = np.array(sub_metadata.deleted + sub_metadata.changed)
+
+# Plot the scatter plot with the calculated area
+plt.scatter(x, y, alpha=0.3)
+
+plt.ylabel("Age in Months")
+plt.xlabel("# Rules Changed or Deleted")
+plt.title("Subreddit Age and Rule Change")
+
+plt.show()
+```

@@ -218,7 +218,6 @@ def run_step1(data_directory:str):
                     short_name_distance = float("Inf")
                     violation_reason_distance = float("Inf")
                 else:
-                    print(f'{subname} had a rule with more than two versions')
                     drop_subs.append(subname)
                 description_distances.append( description_distance )
                 short_name_distances.append( short_name_distance )
@@ -246,10 +245,10 @@ def run_step1(data_directory:str):
         else:
             filename = f'{data_directory}/step1_rules_cleaned_fast.json'
         with open(filename, 'w') as outfile1:
-            print( len( allrules ) )
+            print( 'outputting data' )
             json.dump(allrules, outfile1)
         with open(f'{data_directory}/step1_rules_metadata.json', 'w') as outfile2:
-            print( len( rule_meta_data ) )
+            print( 'outputting metadata' )
             json.dump(rule_meta_data, outfile2)
 
 if __name__ == '__main__':

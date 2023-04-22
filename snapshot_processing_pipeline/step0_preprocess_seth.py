@@ -253,7 +253,7 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
 
     header = ('communityID', 'subscribers_1', 'subscribers_2', 'rules_1', 'rules_2', 
               'timestamp_1', 'timestamp_2', 'founding_date')
-    with open(f'{output_directory}/sub_metadata.csv', 'w', encoding='utf-8') as outfile:
+    with open(f'{output_directory}/sub_metadata_step_0.csv', 'w', encoding='utf-8') as outfile:
         writer = csv.DictWriter(outfile, fieldnames=header)
         writer.writeheader()
         for sub in sub_metadata:
