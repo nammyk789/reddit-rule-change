@@ -201,10 +201,11 @@ total_present = (rules_in_both_snaps != 'never_present').sum()
 **Table 2** allows us to examine how different text fields change for rules that are present 
 in both snapshots. 
 <% round(total_unchanged['description_change_type']/total_present['name_change_type'] * 100, 2) %>%
-of these rules were initialized with non-default rule descriptions. Rule descriptions were
-never deleted, but
+of these rules were initialized with non-default rule descriptions. 
+<% round(total_deleted['description_change_type']/total_present['description_change_type'] * 100, 2) %>%
+of rule descriptions were deleted,
 <% round(total_added['description_change_type']/total_present['description_change_type'] * 100, 2) %>%
-were added and 
+were added, and 
 <% round(total_changed['description_change_type']/total_present['description_change_type'] * 100, 2) %>%
 were changed. Rule names changed the least often. Violation text saw the most churn, with
 <% round(total_added['violation_change_type']/total_present['violation_change_type'] * 100, 2) %>%
