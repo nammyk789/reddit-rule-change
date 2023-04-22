@@ -256,7 +256,7 @@ changed.
   </tr>
 </table>
 
-# Sub Level Hypothesis Testing
+# Hypothesis Testing
 ## Punctuated Equilibrium
 
 ```python, echo=False, caption = "Figure 2", fig = True, width = 400
@@ -314,13 +314,15 @@ subs changed less than 10% of their rule descriptions. The evidence has the cave
 percentages of rule changes or activity might in reality have a low count of rules, amplifying the perceived turnover. 
 
 ```python, echo=False, caption = "Figure 4", fig = True, width = 400
-x = np.array((sub_metadata.added + sub_metadata.deleted + sub_metadata.changed)/sub_metadata.rules_1)
+x = np.array((sub_metadata.added + sub_metadata.deleted + sub_metadata.changed))
 y = np.array(sub_metadata.rules_1)
+x = x + np.random.normal(0,0.25,len(sub_metadata))
+y = y + np.random.normal(0,0.25,len(sub_metadata))
 
 # Plot the scatter plot with the calculated area
 plt.scatter(x, y, alpha=0.3)
 
-plt.xlabel("# Rules Turned Over / # Rules in First Snap")
+plt.xlabel("# Rules Turned Over")
 plt.ylabel("# Rules in First Snap")
 plt.title("Rule Turnover and Size of Rule Corpus")
 
@@ -329,6 +331,33 @@ plt.show()
 
 **Figure 4** is a scatterplot that looks at the relationship between the number of initial rules 
 a sub has and rule turn over (rules that were added, deleted, or changed). 
+
+```python, echo=False, caption = "Figure 4.5", fig = True, width = 400
+# Creating dataset
+sub_metadata['turned_over'] = sub_metadata.added + sub_metadata.deleted + sub_metadata.changed
+first_bin = np.array(sub_metadata[sub_metadata.turned_over < 6].rules_1)
+second_bin = np.array(sub_metadata[(sub_metadata.turned_over >= 6) & (sub_metadata.turned_over < 12)].rules_1)
+third_bin = np.array(sub_metadata[(sub_metadata.turned_over >= 12) & (sub_metadata.turned_over < 18)].rules_1)
+fourth_bin = np.array(sub_metadata[(sub_metadata.turned_over >= 18) & (sub_metadata.turned_over < 24)].rules_1)
+fifth_bin = np.array(sub_metadata[(sub_metadata.turned_over >= 24)].rules_1)
+data = np.array([first_bin, second_bin, third_bin, fourth_bin, fifth_bin], dtype=object)
+ 
+fig = plt.figure()
+ 
+# Creating axes instance
+ax = fig.add_axes([0, 0, 1, 1])
+ 
+# Creating plot
+bp = ax.boxplot(data, notch=True, vert=False, patch_artist=True,
+                 labels=['< 6', '[6, 12)', '[12, 18)', '[18, 24)', '>=24'])  # will be used to label x-ticks
+
+plt.ylabel("# rules turned over")
+plt.xlabel("# rules in initial snapshot")
+plt.title("Initial Rules and Rule Turnovers")
+
+# show plot
+plt.show()
+```
 
 ## Number of Subscribers
 ### H: The bigger the sub, the more likely that they will add >=1 rule
@@ -345,14 +374,13 @@ fig = plt.figure()
 ax = fig.add_axes([0, 0, 1, 1])
  
 # Creating plot
-bp = ax.boxplot(data,
-                 notch=True,  # notch shape
-                 vert=False,  # vertical box alignment
-                 patch_artist=True,  # fill with color
-                 labels=['added >= 1 rule', 'did not add rules'])  # will be used to label x-ticks
+bp = ax.boxplot(data, notch=True, vert=False, patch_artist=True, 
+                 labels=['>= 1', '0'])  # will be used to label x-ticks
 plt.xscale("log")
 
 plt.xlabel("# Subscribers")
+plt.ylabel("# Rules Added")
+
 plt.title("Subreddit Size and Adding a Rule")
 plt.show()
 ```
@@ -372,10 +400,11 @@ ax = fig.add_axes([0, 0, 1, 1])
 # Creating plot
 bp = ax.boxplot(data,
                  notch=True, vert=False, patch_artist=True, 
-                 labels=['deleted >= 1 rule', 'did not delete rules'])  # will be used to label x-ticks
+                 labels=['>= 1', '0'])  # will be used to label x-ticks
 plt.xscale("log")
 
 plt.xlabel("# Subscribers")
+plt.ylabel("# Rules Deleted")
 plt.title("Subreddit Size and Deleting a Rule")
 plt.show()
 ```
@@ -384,7 +413,7 @@ plt.show()
 
 ```python, echo=False, caption = "Figure 6", fig = True, width = 400
 y = np.array(sub_metadata.subscribers_1 + 2)
-x = np.array(sub_metadata.added)
+x = np.array(sub_metadata.added) + np.random.normal(0,0.3,len(sub_metadata))
 
 # Plot the scatter plot with the calculated area
 plt.scatter(x, y, alpha=0.3)
@@ -401,7 +430,7 @@ plt.show()
 
 ```python, echo=False, caption = "Figure 7", fig = True, width = 400
 y = np.array(sub_metadata.subscribers_1 + 2)
-x = np.array(sub_metadata.deleted)
+x = np.array(sub_metadata.deleted) + np.random.normal(0,0.3,len(sub_metadata))
 
 # Plot the scatter plot with the calculated area
 plt.scatter(x, y, alpha=0.3)
@@ -419,7 +448,7 @@ plt.show()
 ```python, echo=False, caption = "Figure 9", fig = True, width = 400
 #     1 scatterplot x = #subscribers, y = sum(rules changed  + rules deleted)
 y = np.array(sub_metadata.subscribers_1 + 2)
-x = np.array(sub_metadata.deleted + sub_metadata.changed)
+x = np.array(sub_metadata.deleted + sub_metadata.changed) + np.random.normal(0,0.3,len(sub_metadata))
 
 # Plot the scatter plot with the calculated area
 plt.scatter(x, y, alpha=0.3)
@@ -448,9 +477,10 @@ ax = fig.add_axes([0, 0, 1, 1])
  
 # Creating plot
 bp = ax.boxplot(data, notch=True, vert=False, patch_artist=True,
-                 labels=['added >= 1 rule', 'did not add rules'])  # will be used to label x-ticks
+                 labels=['>= 1', '0'])  # will be used to label x-ticks
 
 plt.xlabel("Age in Months")
+plt.ylabel("# Rules Added")
 plt.title("Subreddit Age and Adding a Rule")
 plt.show()
 ```
@@ -469,11 +499,11 @@ fig = plt.figure()
 ax = fig.add_axes([0, 0, 1, 1])
  
 # Creating plot
-bp = ax.boxplot(data, notch=True, vert=False,
-                 patch_artist=True,  # fill with color
-                 labels=['deleted >= 1 rule', 'did not deleted rules'])  # will be used to label x-ticks
+bp = ax.boxplot(data, notch=True, vert=False, patch_artist=True,
+                 labels=['>= 1', '0'])  # will be used to label x-ticks
 
 plt.xlabel("Age in Months")
+plt.ylabel("# Rules Deleted")
 plt.title("Subreddit Age and Deleting a Rule")
 plt.show()
 ```
@@ -481,7 +511,7 @@ plt.show()
 ### H: the older the sub, the fewer rules they add
 ```python, echo=False, caption = "Figure 11", fig = True, width = 400
 y = np.array(sub_metadata.age_in_months)
-x = np.array(sub_metadata.added)
+x = np.array(sub_metadata.added) + np.random.normal(0,0.3,len(sub_metadata))
 
 # Plot the scatter plot with the calculated area
 plt.scatter(x, y, alpha=0.3)
@@ -497,7 +527,7 @@ plt.show()
 
 ```python, echo=False, caption = "Figure 13", fig = True, width = 400
 y = np.array(sub_metadata.age_in_months)
-x = np.array(sub_metadata.deleted)
+x = np.array(sub_metadata.deleted) + np.random.normal(0,0.3,len(sub_metadata)) 
 
 # Plot the scatter plot with the calculated area
 plt.scatter(x, y, alpha=0.3)
@@ -512,7 +542,7 @@ plt.show()
 ### H: the older the sub, the fewer total changes they will make
 ```python, echo=False, caption = "Figure 14", fig = True, width = 400
 y = np.array(sub_metadata.age_in_months)
-x = np.array(sub_metadata.deleted + sub_metadata.changed)
+x = np.array(sub_metadata.deleted + sub_metadata.changed) + np.random.normal(0,0.3,len(sub_metadata))
 
 # Plot the scatter plot with the calculated area
 plt.scatter(x, y, alpha=0.3)
@@ -524,18 +554,32 @@ plt.title("Subreddit Age and Rule Change")
 plt.show()
 ```
 
-# Rule Level Hypothesis Testing
 ### H: the more initial rules the sub has, the more likely they will delete rules
 ```python, echo=False, caption = "Figure 15", fig = True, width = 400
-y = np.array(sub_metadata.age_in_months)
-x = np.array(sub_metadata.deleted + sub_metadata.changed)
+y = np.array(sub_metadata.rules_1) + np.random.normal(0,0.3,len(sub_metadata))
+x = np.array(sub_metadata.deleted) + np.random.normal(0,0.3,len(sub_metadata))
 
 # Plot the scatter plot with the calculated area
 plt.scatter(x, y, alpha=0.3)
 
-plt.ylabel("Age in Months")
-plt.xlabel("# Rules Changed or Deleted")
-plt.title("Subreddit Age and Rule Change")
+plt.ylabel("Initial # Rules")
+plt.xlabel("# Rules Deleted")
+plt.title("Subreddit Initial Rules and Rule Deletions")
+
+plt.show()
+```
+
+### H: the more initial rules the sub has, the more likely they will add rules
+```python, echo=False, caption = "Figure 15", fig = True, width = 400
+y = np.array(sub_metadata.rules_1) + np.random.normal(0,0.3,len(sub_metadata)) 
+x = np.array(sub_metadata.added) + np.random.normal(0,0.3,len(sub_metadata))
+
+# Plot the scatter plot with the calculated area
+plt.scatter(x, y, alpha=0.3)
+
+plt.ylabel("Initial # Rules")
+plt.xlabel("# Rules Added")
+plt.title("Subreddit Initial Rules and Rule Additions")
 
 plt.show()
 ```
