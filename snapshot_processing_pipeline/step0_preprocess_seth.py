@@ -43,6 +43,10 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
     date_of_first_scrape = datetime.datetime(2021, 4, 23)
     one_month_before_first_scrape = date_of_first_scrape - datetime.timedelta(days=30)
     one_month_before_first_scrape = int(one_month_before_first_scrape.timestamp())
+    too_young = 0
+    subs_in_first_scrape = 0
+
+    total_subs_in_both_scrapes = []
 
     print("processing first scrape")
     with open(scrape1_path) as apr_23:
@@ -52,7 +56,9 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
             except:
                 errors += 1
                 continue
+            subs_in_first_scrape += 1
             subname = sub['sub_name'].lower()
+            total_subs_in_both_scrapes.append(subname)
 
             if sub_counter[subname] > 0: # skip duplicates
                 continue
@@ -70,6 +76,7 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
 
             if sub['created_utc'] >= one_month_before_first_scrape: # drop if sub is too young
                 drop_subs[subname] += 1
+                too_young += 1
                 continue
             else:
                 subs_1.append(subname)
@@ -140,6 +147,9 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
             # count += 1
 
     count = 0
+    too_few_subs = 0
+    zero_rules = 0
+    subs_in_second_scrape = 0
     print("processing second scrape")
     with open(scrape2_path) as dec_10:
         for i, line in enumerate(dec_10):
@@ -148,7 +158,10 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
             except:
                 errors += 1
                 continue
+            subs_in_second_scrape += 1
             subname = sub['sub_name'].lower()
+            total_subs_in_both_scrapes.append(subname)
+
             if sub_counter[subname] != 1 or drop_subs[subname] > 0:
                 continue # we only want subs that are in both snapshots, and we want to skip duplicates
             
@@ -166,10 +179,12 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
             # drop subs that have too few subscribers
             if sub_metadata[subname]['subscribers_1'] < 3 and sub_metadata[subname]['subscribers_2'] < 3:
                 drop_subs[subname] += 1
+                too_few_subs += 1
                 continue
             # drop subs that have no rules in both scrapes
             elif sub_metadata[subname]['rules_1'] < 1 and sub_metadata[subname]['rules_2'] < 1:
                 drop_subs[subname] += 1
+                zero_rules += 1
                 continue
 
             if subname not in sub_rule_versions:
@@ -239,6 +254,12 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
             # count += 1
 
     print('Finished processing scrapes')
+    print(f'total subs in both scrapes: {len(set(total_subs_in_both_scrapes))}')
+    print(f"subs in first scrape: {subs_in_first_scrape}")
+    print(f"subs in second scrape: {subs_in_second_scrape}")
+    print(f"subs that had zero rules in both scrapes: {zero_rules}")
+    print(f"subs that had less than three subscribers in both scrapes: {too_few_subs}")
+    print(f"subs that were less than a month old in the first scrape: {too_young}")
 
     # remove subs that are not in both snapshots and subs that weren't processed properly
     subs_scraped = set(sub_rule_versions.keys())
