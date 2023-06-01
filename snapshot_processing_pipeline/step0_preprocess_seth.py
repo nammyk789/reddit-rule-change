@@ -27,7 +27,6 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
     count = 0  # these two values are for testing on subsets
     max_count = 10000  # these two values are for testing on subsets
     subs_1 = [] # subs from the first file
-    subs_2 = [] # subs from the second file
     sub_rule_versions = {}
     sub_rule_names = {}
     sub_descriptions = {}
@@ -44,9 +43,7 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
     one_month_before_first_scrape = date_of_first_scrape - datetime.timedelta(days=30)
     one_month_before_first_scrape = int(one_month_before_first_scrape.timestamp())
     too_young = 0
-    subs_in_first_scrape = 0
-
-    total_subs_in_both_scrapes = []
+    first_scrape_sub_counter = Counter()
 
     print("processing first scrape")
     with open(scrape1_path) as apr_23:
@@ -56,9 +53,7 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
             except:
                 errors += 1
                 continue
-            subs_in_first_scrape += 1
             subname = sub['sub_name'].lower()
-            total_subs_in_both_scrapes.append(subname)
 
             if sub_counter[subname] > 0: # skip duplicates
                 continue
@@ -70,6 +65,7 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
                 sub_metadata[subname]['rules_1'] = len(sub['rules_widget'])
                 sub_metadata[subname]['founding_date'] = sub['created_utc']
                 sub_metadata[subname]['timestamp_1'] = sub['timestamp']
+                first_scrape_sub_counter[subname] += 1
             except: # if any of those fields are missing, drop the sub
                 drop_subs[subname] += 1
                 continue
@@ -79,7 +75,6 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
                 too_young += 1
                 continue
             else:
-                subs_1.append(subname)
                 sub_counter[subname] += 1
 
             ## build structure up
@@ -149,7 +144,7 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
     count = 0
     too_few_subs = 0
     zero_rules = 0
-    subs_in_second_scrape = 0
+    second_scrape_sub_counter = Counter()
     print("processing second scrape")
     with open(scrape2_path) as dec_10:
         for i, line in enumerate(dec_10):
@@ -158,20 +153,21 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
             except:
                 errors += 1
                 continue
-            subs_in_second_scrape += 1
             subname = sub['sub_name'].lower()
-            total_subs_in_both_scrapes.append(subname)
 
-            if sub_counter[subname] != 1 or drop_subs[subname] > 0:
+            if sub_counter[subname] != 1:
+                second_scrape_sub_counter[subname] +=1
                 continue # we only want subs that are in both snapshots, and we want to skip duplicates
-            
+
+            elif drop_subs[subname] > 0:
+                continue
+
             # get metadata
             try:
                 sub_metadata[subname]['subscribers_2'] = int(sub['subscribers'])
                 sub_metadata[subname]['rules_2'] = len(sub['rules_widget'])
                 sub_metadata[subname]['timestamp_2'] = sub['timestamp']
-                subs_2.append(subname)
-                sub_counter[subname] += 1
+                second_scrape_sub_counter[subname] += 1
             except:
                 drop_subs[subname] += 1
                 continue
@@ -186,6 +182,9 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
                 drop_subs[subname] += 1
                 zero_rules += 1
                 continue
+            
+            else:
+                sub_counter[subname] += 1
 
             if subname not in sub_rule_versions:
                 ### bookkeeping
@@ -254,9 +253,12 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
             # count += 1
 
     print('Finished processing scrapes')
-    print(f'total subs in both scrapes: {len(set(total_subs_in_both_scrapes))}')
-    print(f"subs in first scrape: {subs_in_first_scrape}")
-    print(f"subs in second scrape: {subs_in_second_scrape}")
+    total_subs = list(first_scrape_sub_counter.keys()) + list(second_scrape_sub_counter.keys())
+    subs_in_both = set(list(first_scrape_sub_counter.keys())).intersection(list(second_scrape_sub_counter.keys()))
+    print(f'total subs in both scrapes: {len(set(total_subs))}')
+    print(f"subs in first scrape: {len(first_scrape_sub_counter.keys())}")
+    print(f"subs in second scrape: {len(second_scrape_sub_counter.keys())}")
+    print(f"subs in both: {len(subs_in_both)}")
     print(f"subs that had zero rules in both scrapes: {zero_rules}")
     print(f"subs that had less than three subscribers in both scrapes: {too_few_subs}")
     print(f"subs that were less than a month old in the first scrape: {too_young}")
@@ -267,9 +269,11 @@ def run_step0_seth(scrape1_path: str, scrape2_path:str, output_directory:str):
         if sub_counter[sub] != 2 or drop_subs[sub] > 0:
             sub_rule_versions.pop(sub)
 
+    print(f"remaining subs: {len(sub_rule_versions.keys())}")
 
     with open(f'{output_directory}/step0_rules_merged.json', 'w') as outfile:
         json.dump(sub_rule_versions, outfile)
+    
     print( 'SCRIPT end' )
 
     header = ('communityID', 'subscribers_1', 'subscribers_2', 'rules_1', 'rules_2', 
