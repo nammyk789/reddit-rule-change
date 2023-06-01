@@ -16,3 +16,6 @@ final report
 rule-level data, including notebooks for training and testing classifiers and notebooks for 
 visualizing the data and looking for patterns. These notebooks were used to generate the figures
 and models used in my final writeup.
+
+`data analysis.xlsx` is an Excel file with some metadata on the output of the processing pipeline,
+along with more detailed notes on how rules were assigned labels.
