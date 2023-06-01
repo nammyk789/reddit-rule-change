@@ -7,7 +7,8 @@ rule change in subreddits. The repository is organized as follows:
 
 `snapshot_processing_pipeline` contains all the code used to process the Reddit scrapes 
 we were working in, organized into three steps. In order to process the data, simply run the 
-`rune_pipeline.py` file. 
+`run_pipeline.py` file. The scrape data is not included in this repository because it was too large
+to upload to GitHub, and needs to be added to the local repository before the pipeline is run.
 
 `result_figures` contains all the figures generated in the Jupyter Notebooks that were included in my
 final report
