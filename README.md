@@ -20,3 +20,6 @@ and models used in my final writeup.
 
 `data analysis.xlsx` is an Excel file with some metadata on the output of the processing pipeline,
 along with more detailed notes on how rules were assigned labels.
+
+Lastly, `reddit_rule_change_final_writeup.pdf` contains the report I turned in on the work in 
+this repository.
